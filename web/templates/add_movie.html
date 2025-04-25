@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+
+{% block title %}Dodaj Film - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2>Dodaj nowy film</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('main.add_movie') }}">
+                    <!-- Podstawowe informacje o filmie -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Tytuł</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Rok produkcji</label>
+                        <input type="number" class="form-control" id="year" name="year" min="1900" max="2099" required>
+                    </div>
+                    
+                    <!-- Reżyser - wybór istniejącego lub dodanie nowego -->
+                    <div class="mb-3">
+                        <label for="director" class="form-label">Reżyser</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="director" name="director" list="director-list" required>
+                            <datalist id="director-list">
+                                {% for director in all_directors %}
+                                    <option value="{{ director.name }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="form-text">Wpisz imię i nazwisko reżysera. Możesz wybrać z listy istniejących lub dodać nowego.</div>
+                    </div>
+                    
+                    <!-- Aktorzy - dodanie wielu oddzielonych przecinkami -->
+                    <div class="mb-3">
+                        <label for="actors" class="form-label">Aktorzy</label>
+                        <textarea class="form-control" id="actors" name="actors" rows="2"></textarea>
+                        <div class="form-text">Wpisz imiona i nazwiska aktorów oddzielone przecinkami. Np. "Tom Hanks, Leonardo DiCaprio"</div>
+                        <div class="mt-2">
+                            <span class="fw-bold">Istniejący aktorzy:</span>
+                            <div class="d-flex flex-wrap gap-2 mt-1">
+                                {% for actor in all_actors %}
+                                    <span class="badge bg-secondary actor-badge" 
+                                          onclick="addActor('{{ actor.name }}')">{{ actor.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gatunki - wybór wielu z listy plus możliwość dodania nowych -->
+                    <div class="mb-3">
+                        <label class="form-label">Gatunki</label>
+                        <div class="row mb-2">
+                            <div class="col">
+                                <select multiple class="form-select" id="genres" name="genres" size="5">
+                                    {% for genre in all_genres %}
+                                        <option value="{{ genre.name }}">{{ genre.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Przytrzymaj Ctrl, aby wybrać wiele gatunków.</div>
+                            </div>
+                        </div>
+                        <label for="new_genres" class="form-label">Dodaj nowe gatunki</label>
+                        <input type="text" class="form-control" id="new_genres" name="new_genres">
+                        <div class="form-text">Wpisz nowe gatunki oddzielone przecinkami. Np. "Thriller, Western"</div>
+                    </div>
+                    
+                    <!-- Ocena i komentarz -->
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Ocena (1-10)</label>
+                        <input type="number" class="form-control" id="rating" name="rating" min="1" max="10">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Komentarz/Recenzja</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+                    </div>
+                    
+                    <!-- Data obejrzenia -->
+                    <div class="mb-3">
+                        <label for="date_watched" class="form-label">Data obejrzenia</label>
+                        <input type="date" class="form-control" id="date_watched" name="date_watched">
+                        <div class="form-text">Pozostaw puste, jeśli film nie został jeszcze obejrzany.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Dodaj film</button>
+                        <a href="{{ url_for('main.list_movies') }}" class="btn btn-outline-secondary">Anuluj</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4>ZODB: Trwałość i relacje</h4>
+            </div>
+            <div class="card-body">
+                <div class="zodb-feature zodb-feature-highlight">
+                    <h3>Automatyczna trwałość obiektów</h3>
+                    <p>Gdy dodajesz nowy film, ZODB automatycznie:</p>
+                    <ul>
+                        <li>Tworzy trwały obiekt Movie</li>
+                        <li>Wyszukuje lub tworzy obiekty Person dla reżysera i aktorów</li>
+                        <li>Wyszukuje lub tworzy obiekty Genre dla gatunków</li>
+                        <li>Ustanawia dwukierunkowe relacje między wszystkimi obiektami</li>
+                        <li>Aktualizuje indeksy BTrees dla efektywnego wyszukiwania</li>
+                        <li>Zatwierdza wszystkie zmiany w ramach jednej transakcji</li>
+                    </ul>
+                </div>
+                
+                <div class="zodb-feature mt-3">
+                    <h3>Transakcyjność ZODB</h3>
+                    <p>Wszystkie zmiany są opakowywane w transakcję, która albo się powiedzie w całości, albo w całości zostanie anulowana.</p>
+                    <pre><code>transaction.commit()  # Zatwierdzenie zmian
+transaction.abort()  # Anulowanie zmian</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    function addActor(name) {
+        let actorsField = document.getElementById('actors');
+        let currentValue = actorsField.value;
+        
+        if (currentValue && !currentValue.endsWith(',') && currentValue.length > 0) {
+            actorsField.value = currentValue + ', ' + name;
+        } else {
+            actorsField.value = currentValue + name;
+        }
+    }
+</script>
+{% endblock %}
+
+{% endblock %}
