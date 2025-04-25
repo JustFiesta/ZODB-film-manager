@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+
+{% block title %}Wyniki wyszukiwania: {{ query }} - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1>Wyniki wyszukiwania: "{{ query }}"</h1>
+    <p>Znaleziono {{ movies|length }} film(ów).</p>
+    <a href="{{ url_for('main.list_movies') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Wróć do wszystkich filmów
+    </a>
+</div>
+
+<div class="zodb-feature mb-4">
+    <h3>Wyszukiwanie w ZODB</h3>
+    <p>ZODB to baza obiektowa, która pozwala na elastyczne wyszukiwanie przez przeszukiwanie obiektów w pamięci, bez konieczności tworzenia skomplikowanych zapytań SQL.</p>
+    <pre class="bg-light p-2"><code class="python">def search_movies(self, query):
+    results = []
+    query_lower = query.lower()
+    
+    for movie in self.movies.values():
+        # Wyszukiwanie po tytule
+        if query_lower in movie.title.lower():
+            results.append(movie)
+            continue
+            
+        # Wyszukiwanie po reżyserze
+        if query_lower in movie.director.name.lower():
+            results.append(movie)
+            continue
+            
+        # Wyszukiwanie po aktorach
+        for actor in movie.cast:
+            if query_lower in actor.name.lower():
+                results.append(movie)
+                break
+                
+        # Wyszukiwanie po gatunkach
+        for genre in movie.genres:
+            if query_lower in genre.name.lower():
+                results.append(movie)
+                break
+                
+    return results</code></pre>
+</div>
+
+<div class="row">
+    {% if movies %}
+        {% for movie in movies %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 movie-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ movie.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ movie.year }}</h6>
+                        <p class="card-text">
+                            Reżyseria: {{ movie.director.name }}
+                        </p>
+                        
+                        {% if movie.genres %}
+                            <p class="card-text">
+                                {% for genre in movie.genres %}
+                                    <span class="badge bg-secondary">{{ genre.name }}</span>
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                        
+                        {% if movie.rating %}
+                            <p class="card-text">
+                                <span class="badge bg-warning text-dark">
+                                    {{ movie.rating }}/10
+                                </span>
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="btn btn-primary btn-sm">Zobacz szczegóły</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Nie znaleziono filmów pasujących do zapytania "{{ query }}".
+                <a href="{{ url_for('main.add_movie') }}" class="alert-link">Dodaj nowy film</a>.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="mt-4">
+    <form class="d-flex" action="{{ url_for('main.search') }}" method="get">
+        <div class="input-group">
+            <input class="form-control" type="search" name="q" placeholder="Wyszukaj ponownie" value="{{ query }}">
+            <button class="btn btn-primary" type="submit">
+                <i class="bi bi-search"></i> Szukaj
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="mt-5 p-4 bg-light rounded">
+    <h4>Porównanie wyszukiwania: ZODB vs SQL</h4>
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Tradycyjne SQL</h5>
+            <pre class="bg-light p-2"><code>-- Wyszukiwanie po wielu kryteriach wymaga złożonych JOIN-ów
+SELECT DISTINCT m.* FROM movies m
+LEFT JOIN directors d ON m.director_id = d.id
+LEFT JOIN movie_actors ma ON m.id = ma.movie_id
+LEFT JOIN actors a ON ma.actor_id = a.id
+LEFT JOIN movie_genres mg ON m.id = mg.movie_id
+LEFT JOIN genres g ON mg.genre_id = g.id
+WHERE 
+  m.title LIKE '%query%' OR
+  d.name LIKE '%query%' OR
+  a.name LIKE '%query%' OR
+  g.name LIKE '%query%'</code></pre>
+        </div>
+        <div class="col-md-6">
+            <h5>ZODB</h5>
+            <pre class="bg-light p-2"><code class="python"># Proste przeszukiwanie obiektów w pamięci
+for movie in self.movies.values():
+    # Bezpośredni dostęp do atrybutów i kolekcji
+    if query in movie.title or
+       query in movie.director.name or
+       any(query in actor.name for actor in movie.cast) or
+       any(query in genre.name for genre in movie.genres):
+        results.append(movie)</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}
