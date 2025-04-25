@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+
+{% block title %}Aktorzy - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Aktorzy</h1>
+    <div class="btn-group">
+        <a href="{{ url_for('main.list_persons') }}" class="btn btn-outline-primary">
+            <i class="bi bi-people"></i> Wszystkie osoby
+        </a>
+        <a href="{{ url_for('main.list_directors') }}" class="btn btn-outline-primary">
+            <i class="bi bi-camera-reels"></i> Reżyserzy
+        </a>
+    </div>
+</div>
+
+<div class="zodb-feature mb-4">
+    <h3>Aktorzy w ZODB</h3>
+    <p>W ZODB aktorzy są przechowywani jako obiekty Person z relacjami do filmów, w których wystąpili. Ta sama osoba może być jednocześnie aktorem i reżyserem, bez potrzeby duplikowania danych.</p>
+</div>
+
+<div class="row">
+    {% if actors %}
+        {% for actor in actors %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ actor.name }}</h5>
+                        
+                        <div class="mt-2">
+                            <strong>Wystąpił w filmach:</strong>
+                            <span class="badge bg-info text-dark">{{ actor.movies_acted|length }}</span>
+                        </div>
+                        
+                        {% if actor.movies_acted %}
+                            <ul class="list-unstyled mt-2">
+                                {% for movie in actor.movies_acted[:3] %}
+                                    <li>
+                                        <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="text-decoration-none">
+                                            • {{ movie.title }} ({{ movie.year }})
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                                {% if actor.movies_acted|length > 3 %}
+                                    <li class="text-muted">...i {{ actor.movies_acted|length - 3 }} więcej</li>
+                                {% endif %}
+                            </ul>
+                        {% endif %}
+                        
+                        {% if actor.movies_directed %}
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    Jest również reżyserem {{ actor.movies_directed|length }} filmów.
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent d-flex justify-content-between">
+                        <a href="{{ url_for('main.person_detail', name=actor.name) }}" class="btn btn-primary">
+                            <i class="bi bi-info-circle"></i> Szczegóły
+                        </a>
+                        <div class="btn-group">
+                            <a href="{{ url_for('main.edit_person', name=actor.name) }}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-outline-danger" 
+                                    {% if actor.movies_directed %}disabled{% endif %}
+                                    onclick="confirmDeleteActor('{{ actor.name }}', {{ actor.movies_directed|length }}, {{ actor.movies_acted|length }})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Brak aktorów w bazie danych. 
+                <a href="{{ url_for('main.add_movie') }}" class="alert-link">Dodaj film</a> z obsadą aktorską.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="object-relationship mt-4">
+    <h4>ZODB: Zarządzanie obsadą aktorską w filmach</h4>
+    <div class="p-4 bg-light rounded">
+        <p>W ZODB dodawanie aktorów do filmów i aktualizacja wszystkich relacji jest proste:</p>
+        <pre class="bg-light p-2 rounded"><code class="python">def add_actor_to_movie(self, movie_title, actor_name):
+    """Dodaje aktora do obsady filmu."""
+    movie = self.get_movie(movie_title)
+    if not movie:
+        return False
+        
+    # Znajdź lub utwórz aktora
+    actor = self.get_or_create_person(actor_name)
+    
+    # Aktualizacja dwukierunkowej relacji
+    movie.add_actor(actor)  # To doda aktora do filmu i film do aktora
+    
+    # Zatwierdź zmiany
+    self.db.commit()
+    return True
+    
+# W klasie Movie:
+def add_actor(self, actor):
+    """Dodaje aktora do obsady filmu i aktualizuje relację dwukierunkową"""
+    if actor not in self.cast:
+        self.cast.append(actor)
+        if self not in actor.movies_acted:
+            actor.movies_acted.append(self)</code></pre>
+        <p class="mt-3">Dzięki dwukierunkowym relacjom możemy łatwo znaleźć wszystkie filmy danego aktora oraz wszystkich aktorów danego filmu, bez złożonych zapytań SQL.</p>
+    </div>
+</div>
+{% block scripts %}
+<script>
+    function confirmDeleteActor(actorName, directedCount, actedCount) {
+        if (directedCount > 0) {
+            alert(`Nie można usunąć osoby "${actorName}", ponieważ jest również reżyserem ${directedCount} filmów. Najpierw zmień reżysera tych filmów.`);
+            return;
+        }
+        
+        let message = `Czy na pewno chcesz usunąć aktora "${actorName}"?`;
+        
+        if (actedCount > 0) {
+            message += `\n\nUWAGA: Ten aktor występuje w ${actedCount} filmach. Usunięcie spowoduje usunięcie go z obsady tych filmów.`;
+        }
+        
+        if (confirm(message)) {
+            // Tworzymy formularz dynamicznie
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = `/delete_person/${actorName}`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}
+{% endblock %}

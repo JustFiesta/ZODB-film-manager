@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+
+{% block title %}Osoby - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Osoby</h1>
+    <div class="btn-group">
+        <a href="{{ url_for('main.list_directors') }}" class="btn btn-outline-primary">
+            <i class="bi bi-camera-reels"></i> Tylko reżyserzy
+        </a>
+        <a href="{{ url_for('main.list_actors') }}" class="btn btn-outline-primary">
+            <i class="bi bi-person-badge"></i> Tylko aktorzy
+        </a>
+    </div>
+</div>
+
+<div class="zodb-feature mb-4">
+    <h3>Osoby w ZODB</h3>
+    <p>W ZODB ta sama osoba może być zarówno aktorem, jak i reżyserem. Jeden obiekt Person może mieć dwukierunkowe relacje z wieloma filmami.</p>
+</div>
+
+<div class="row">
+    {% if persons %}
+        {% for person in persons %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ person.name }}</h5>
+                        <p class="card-text">
+                            {% if person.movies_directed %}
+                                <span class="badge bg-primary">Reżyser</span>
+                            {% endif %}
+                            {% if person.movies_acted %}
+                                <span class="badge bg-info text-dark">Aktor</span>
+                            {% endif %}
+                        </p>
+                        
+                        {% if person.movies_directed %}
+                            <div class="mt-2">
+                                <strong>Filmy wyreżyserowane:</strong>
+                                <span class="badge bg-secondary">{{ person.movies_directed|length }}</span>
+                            </div>
+                            {% if person.movies_directed|length > 0 %}
+                                <ul class="list-unstyled small">
+                                    {% for movie in person.movies_directed[:2] %}
+                                        <li>• {{ movie.title }} ({{ movie.year }})</li>
+                                    {% endfor %}
+                                    {% if person.movies_directed|length > 2 %}
+                                        <li class="text-muted">...i {{ person.movies_directed|length - 2 }} więcej</li>
+                                    {% endif %}
+                                </ul>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% if person.movies_acted %}
+                            <div class="mt-2">
+                                <strong>Filmy jako aktor:</strong>
+                                <span class="badge bg-secondary">{{ person.movies_acted|length }}</span>
+                            </div>
+                            {% if person.movies_acted|length > 0 %}
+                                <ul class="list-unstyled small">
+                                    {% for movie in person.movies_acted[:2] %}
+                                        <li>• {{ movie.title }} ({{ movie.year }})</li>
+                                    {% endfor %}
+                                    {% if person.movies_acted|length > 2 %}
+                                        <li class="text-muted">...i {{ person.movies_acted|length - 2 }} więcej</li>
+                                    {% endif %}
+                                </ul>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent d-flex justify-content-between">
+                        <a href="{{ url_for('main.person_detail', name=person.name) }}" class="btn btn-primary">
+                            <i class="bi bi-info-circle"></i> Szczegóły
+                        </a>
+                        <div class="btn-group">
+                            <a href="{{ url_for('main.edit_person', name=person.name) }}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-outline-danger" 
+                                    {% if person.movies_directed %}disabled{% endif %}
+                                    onclick="confirmDeletePerson('{{ person.name }}', {{ person.movies_directed|length }}, {{ person.movies_acted|length }})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Brak osób w bazie danych. 
+                <a href="{{ url_for('main.add_movie') }}" class="alert-link">Dodaj film</a>, aby dodać reżysera i aktorów.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="object-relationship mt-4">
+    <h4>ZODB: Przezroczysta trwałość obiektów</h4>
+    <div class="p-4 bg-light rounded">
+        <p>W ZODB, obiekty Person są trwałe bez konieczności mapowania na tabele bazy danych:</p>
+        <div class="row">
+            <div class="col-md-6">
+                <h5>W tradycyjnej bazie SQL:</h5>
+                <pre class="bg-light p-2 rounded"><code>-- Potrzebujemy osobnych tabel i relacji
+CREATE TABLE directors (
+  id INT PRIMARY KEY,
+  name VARCHAR(100)
+);
+
+CREATE TABLE actors (
+  id INT PRIMARY KEY,
+  name VARCHAR(100)
+);
+
+-- Osoba będąca zarówno aktorem jak i reżyserem 
+-- wymaga złożonych JOIN-ów i duplikacji danych
+</code></pre>
+            </div>
+            <div class="col-md-6">
+                <h5>W ZODB:</h5>
+                <pre class="bg-light p-2 rounded"><code class="python"># Jedna prosta klasa dla wszystkich osób
+class Person(Persistent):
+    def __init__(self, name):
+        self.name = name
+        self.movies_directed = PersistentList()
+        self.movies_acted = PersistentList()
+        
+# Ta sama osoba może być zarówno aktorem jak i reżyserem
+# bez duplikacji danych czy złożonych relacji</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% block scripts %}
+<script>
+    function confirmDeletePerson(personName, directedCount, actedCount) {
+        if (directedCount > 0) {
+            alert(`Nie można usunąć osoby "${personName}", ponieważ jest reżyserem ${directedCount} filmów. Najpierw zmień reżysera tych filmów.`);
+            return;
+        }
+        
+        let message = `Czy na pewno chcesz usunąć osobę "${personName}"?`;
+        
+        if (actedCount > 0) {
+            message += `\n\nUWAGA: Ta osoba występuje w ${actedCount} filmach. Usunięcie spowoduje usunięcie jej z obsady tych filmów.`;
+        }
+        
+        if (confirm(message)) {
+            // Tworzymy formularz dynamicznie
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = `/delete_person/${personName}`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}
+{% endblock %}
