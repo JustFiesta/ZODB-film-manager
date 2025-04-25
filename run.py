@@ -1,29 +1,22 @@
-from app.crud import MovieManager
+from web import create_app
+import sys
 
-# Ten plik powinien służyć do uruchamiania całej apki
-# Obecnie służy jako przykład do uruchomienia bazy i movie managera
-
-# Inicjalizacja
-manager = MovieManager()
-
-# Dodajemy filmy
-manager.add_movie("Inception", "Christopher Nolan", 2010)
-manager.add_movie("The Matrix", "Wachowski Sisters", 1999)
-
-# Pobieramy filmy
-print(manager.get_movie("Inception"))
-
-# Aktualizujemy film
-manager.update_movie("The Matrix", new_year=2000)
-
-# Lista filmów
-print(manager.list_movies())
-
-# Usuwamy film
-manager.delete_movie("Inception")
-
-# Sprawdzamy listę po usunięciu
-print(manager.list_movies())
-
-# Zamykamy bazę
-manager.close()
+if __name__ == "__main__":
+    app = create_app()
+    
+    # Check for command line arguments
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        # Run tests
+        import unittest
+        from tests.test_crud import TestMovieManager
+        from tests.test_routes import TestFlaskRoutes
+        
+        test_suite = unittest.TestSuite()
+        test_suite.addTest(unittest.makeSuite(TestMovieManager))
+        test_suite.addTest(unittest.makeSuite(TestFlaskRoutes))
+        
+        runner = unittest.TextTestRunner()
+        runner.run(test_suite)
+    else:
+        # Run web app
+        app.run(debug=True, host='0.0.0.0', port=5000)
