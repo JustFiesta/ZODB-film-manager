@@ -1,0 +1,209 @@
+{% extends "layout.html" %}
+
+{% block title %}Filmy - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Biblioteka filmów</h1>
+    <div class="d-flex gap-2">
+        <!-- Filtrowanie -->
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-filter"></i> Filtry
+            </button>
+            <div class="dropdown-menu p-3" style="width: 300px;">
+                <form action="{{ url_for('main.list_movies') }}" method="get">
+                    <!-- Zachowaj aktualne sortowanie -->
+                    <input type="hidden" name="sort" value="{{ sort_by }}">
+                    
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="watched_only" name="watched_only" value="1" 
+                               {% if watched_only %}checked{% endif %}>
+                        <label class="form-check-label" for="watched_only">
+                            Tylko obejrzane filmy
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="with_rating_only" name="with_rating_only" value="1"
+                               {% if with_rating_only %}checked{% endif %}>
+                        <label class="form-check-label" for="with_rating_only">
+                            Tylko filmy z oceną
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-sm">Zastosuj filtry</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Sortowanie -->
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-sort-alpha-down"></i> Sortuj
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item {% if sort_by == 'title' %}active{% endif %}" 
+                      href="{{ url_for('main.list_movies', sort='title', watched_only=1 if watched_only else 0, with_rating_only=1 if with_rating_only else 0) }}">
+                      Tytuł</a></li>
+                <li><a class="dropdown-item {% if sort_by == 'year' %}active{% endif %}" 
+                      href="{{ url_for('main.list_movies', sort='year', watched_only=1 if watched_only else 0, with_rating_only=1 if with_rating_only else 0) }}">
+                      Rok</a></li>
+                <li><a class="dropdown-item {% if sort_by == 'rating' %}active{% endif %}" 
+                      href="{{ url_for('main.list_movies', sort='rating', watched_only=1 if watched_only else 0, with_rating_only=1 if with_rating_only else 0) }}">
+                      Ocena</a></li>
+                <li><a class="dropdown-item {% if sort_by == 'date_added' %}active{% endif %}" 
+                      href="{{ url_for('main.list_movies', sort='date_added', watched_only=1 if watched_only else 0, with_rating_only=1 if with_rating_only else 0) }}">
+                      Ostatnio dodane</a></li>
+                <li><a class="dropdown-item {% if sort_by == 'date_watched' %}active{% endif %}" 
+                      href="{{ url_for('main.list_movies', sort='date_watched', watched_only=1 if watched_only else 0, with_rating_only=1 if with_rating_only else 0) }}">
+                      Data obejrzenia</a></li>
+            </ul>
+        </div>
+        
+        <a href="{{ url_for('main.add_movie') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Dodaj film
+        </a>
+    </div>
+</div>
+
+<div class="zodb-feature mb-4">
+    <h3>ZODB: Indeksowanie OOBTree</h3>
+    <p>Ta strona demonstruje efektywne indeksowanie ZODB przy użyciu OOBTree. Filmy są sortowane za pomocą wyspecjalizowanych indeksów bez konieczności tworzenia zapytań SQL.</p>
+    <p>Aktualne sortowanie: <strong>{{ sort_by|replace('_', ' ')|title }}</strong></p>
+    {% if watched_only or with_rating_only %}
+        <p>Filtry: 
+            {% if watched_only %}<span class="badge bg-primary">Tylko obejrzane</span>{% endif %}
+            {% if with_rating_only %}<span class="badge bg-primary">Tylko z oceną</span>{% endif %}
+        </p>
+    {% endif %}
+</div>
+
+<div class="row">
+    {% if movies %}
+        {% for movie in movies %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 movie-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ movie.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ movie.year }}</h6>
+                        <p class="card-text">Reżyseria: {{ movie.director.name }}</p>
+                        
+                        {% if movie.genres %}
+                            <p class="card-text">
+                                {% for genre in movie.genres %}
+                                    <span class="badge bg-secondary">{{ genre.name }}</span>
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                        
+                        {% if movie.rating %}
+                            <p class="card-text">
+                                <span class="badge bg-warning text-dark">
+                                    {{ movie.rating }}/10
+                                </span>
+                            </p>
+                        {% endif %}
+                        
+                        {% if movie.date_watched %}
+                            <p class="card-text text-muted">
+                                <small>Obejrzano: {{ movie.date_watched.strftime('%d.%m.%Y') }}</small>
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="btn btn-primary btn-sm">Szczegóły</a>
+                            
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                    Akcje
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{{ url_for('main.edit_movie', title=movie.title) }}">Edytuj</a></li>
+                                    <li>
+                                        <form action="{{ url_for('main.rate_movie', title=movie.title) }}" method="post" class="dropdown-item-form">
+                                            <input type="hidden" name="rating" value="8">
+                                            <button type="submit" class="dropdown-item">Oceń (8/10)</button>
+                                        </form>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form action="{{ url_for('main.delete_movie', title=movie.title) }}" method="post" class="dropdown-item-form">
+                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Czy na pewno usunąć film?')">Usuń</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Nie znaleziono filmów{% if watched_only or with_rating_only %} spełniających kryteria filtrowania{% endif %}.
+                <a href="{{ url_for('main.add_movie') }}" class="alert-link">Dodaj nowy film</a>.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="object-relationship mt-4">
+    <h4>Relacje obiektów w bazie danych</h4>
+    <div class="db-structure">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="db-object">
+                    <h5>Obiekt Root</h5>
+                    <div class="db-object-property">movies = OOBTree()</div>
+                    <div class="db-object-property">persons = OOBTree()</div>
+                    <div class="db-object-property">genres = OOBTree()</div>
+                    <div class="db-object-property">movies_by_year = OOBTree()</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="db-object">
+                    <h5>Obiekt Movie</h5>
+                    <div class="db-object-property">title = "string"</div>
+                    <div class="db-object-property">year = integer</div>
+                    <div class="db-object-property">director = <span class="db-object-reference">Person object</span></div>
+                    <div class="db-object-property">genres = PersistentList()</div>
+                    <div class="db-object-property">cast = PersistentList()</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="db-object">
+                    <h5>Obiekt Person</h5>
+                    <div class="db-object-property">name = "string"</div>
+                    <div class="db-object-property">movies_directed = PersistentList()</div>
+                    <div class="db-object-property">movies_acted = PersistentList()</div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center my-3">
+            <p><em>Ten diagram pokazuje, jak ZODB naturalnie obsługuje złożone relacje obiektowe</em></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.dropdown-item-form {
+    display: block;
+    width: 100%;
+    padding: 0;
+}
+.dropdown-item-form .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: .25rem 1rem;
+    clear: both;
+    text-align: inherit;
+    background: none;
+    border: 0;
+}
+</style>
+{% endblock %}
