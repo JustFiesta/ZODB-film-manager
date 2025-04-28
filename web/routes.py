@@ -7,7 +7,7 @@ import json
 from flask import jsonify
 
 main = Blueprint('main', __name__)
-manager = MovieManager(os.environ.get('DB_PATH', 'db/movies.fs'))
+manager = MovieManager(db_path="db/movies.fs")
 
 # ------ Strony główne ------
 

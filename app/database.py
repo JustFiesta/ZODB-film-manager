@@ -1,3 +1,10 @@
+# 1. Całkowicie poprawiony database.py z zachowaną metodą _migrate_schema()
+
+"""
+Oto kompletna wersja pliku database.py z poprawkami do persystencji danych.
+Proszę zastąpić cały plik tym kodem.
+"""
+
 from ZODB import FileStorage, DB
 import transaction
 from BTrees.OOBTree import OOBTree
@@ -16,12 +23,12 @@ class DatabaseManager:
     _instance = None
     _initialized = False
     
-    def __new__(cls, db_path="data/movies.fs"):
+    def __new__(cls, db_path="db/movies.fs"):
         if cls._instance is None:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self, db_path="data/movies.fs"):
+    def __init__(self, db_path="db/movies.fs"):
         if not DatabaseManager._initialized:
             print(f"Inicjalizacja bazy danych: {db_path}")  # Debug
             try:
@@ -97,7 +104,8 @@ class DatabaseManager:
     def close(self):
         """Zamyka połączenie z bazą danych."""
         try:
-            transaction.abort()
+            # Upewnij się, że wszystkie zmiany są zatwierdzone przed zamknięciem
+            transaction.commit()
             
             if hasattr(self, 'connection') and self.connection:
                 self.connection.close()

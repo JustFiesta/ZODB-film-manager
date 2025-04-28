@@ -13,16 +13,19 @@ class MovieManager:
     
     _instance = None
     
-    def __new__(cls, db_path=None):
+    def __new__(cls, db_path="db/movies.fs"):
         if cls._instance is None:
             cls._instance = super(MovieManager, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self, db_path=None):
+    def __init__(self, db_path="db/movies.fs"):
         """Inicjalizuje menedżera filmu z połączeniem do bazy danych."""
         if not hasattr(self, 'db'):
+            print(f"MovieManager: Inicjalizacja z bazą danych: {db_path}")
             self.db = DatabaseManager(db_path)
             self.root = self.db.get_root()
+            print(f"MovieManager: Inicjalizacja zakończona, dostępne filmy: {list(self.root.movies.keys())}")
+
 
     # ----- Operacje na filmach -----
     
@@ -427,10 +430,24 @@ class MovieManager:
         
     # ----- Operacje na bazie danych -----
     
-    def close(self):
-        """Zamyka połączenie z bazą danych."""
-        self.db.close()
-        
+
+def close(self):
+    """Zamyka połączenie z bazą danych."""
+    print("MovieManager: Zamykanie połączenia z bazą danych")
+    try:
+        if hasattr(self, 'db'):
+            # Upewnij się, że wszystkie zmiany są zatwierdzone
+            print("MovieManager: Zatwierdzanie ostatnich zmian")
+            self.db.commit()
+            # Zamknij połączenie z bazą danych
+            print("MovieManager: Zamykanie bazy danych")
+            self.db.close()
+            print("MovieManager: Baza danych zamknięta prawidłowo")
+        else:
+            print("MovieManager: Brak obiektu bazy danych do zamknięcia")
+    except Exception as e:
+        print(f"MovieManager: Błąd podczas zamykania bazy danych: {e}")
+
     def pack_database(self):
         """Pakuje bazę danych aby zaoszczędzić miejsce."""
         self.db.pack()
