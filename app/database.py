@@ -13,41 +13,72 @@ class DatabaseManager:
     oraz zapewnia metody do zarządzania transakcjami i migracji schematu.
     """
     
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls, db_path="data/movies.fs"):
+        if cls._instance is None:
+            cls._instance = super(DatabaseManager, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self, db_path="data/movies.fs"):
-        print(f"Inicjalizacja bazy danych: {db_path}")  # Debug
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
-        self.storage = FileStorage.FileStorage(db_path)
-        self.db = DB(self.storage)
-        self.connection = self.db.open()
-        self.root = self.connection.root()
-
-        if not hasattr(self.root, "movies"):
-            print("Tworzenie nowego słownika filmów")  # Debug
-            self.root.movies = OOBTree()
-            transaction.commit()
-            
-        if not hasattr(self.root, "persons"):
-            self.root.persons = OOBTree()
-            
-        if not hasattr(self.root, "genres"):
-            self.root.genres = OOBTree()
-            
-        # Tworzenie indeksów dla efektywnego wyszukiwania
-        if not hasattr(self.root, "movies_by_year"):
-            self.root.movies_by_year = OOBTree()
-            
-        if not hasattr(self.root, "movies_by_genre"):
-            self.root.movies_by_genre = OOBTree()
-            
-        if not hasattr(self.root, "movies_by_director"):
-            self.root.movies_by_director = OOBTree()
-        
-        # Migracja schematu przy starcie
-        self._migrate_schema()
-        
-        # Commitujemy inicjalizację
-        transaction.commit()
+        if not DatabaseManager._initialized:
+            print(f"Inicjalizacja bazy danych: {db_path}")  # Debug
+            try:
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
+                
+                # Sprawdź czy istnieje plik blokujący i usuń go, jeśli istnieje
+                lock_path = db_path + '.lock'
+                if os.path.exists(lock_path):
+                    print(f"Usuwanie starego pliku blokującego: {lock_path}")
+                    os.remove(lock_path)
+                
+                # Inicjalizuj storage z opcją 'read-only=False'
+                self.storage = FileStorage.FileStorage(db_path, read_only=False)
+                self.db = DB(self.storage)
+                self.connection = self.db.open()
+                self.root = self.connection.root()
+                
+                # Inicjalizacja struktur danych, jeśli nie istnieją
+                if not hasattr(self.root, "movies"):
+                    print("Tworzenie nowego słownika filmów")  # Debug
+                    self.root.movies = OOBTree()
+                    
+                if not hasattr(self.root, "persons"):
+                    self.root.persons = OOBTree()
+                    
+                if not hasattr(self.root, "genres"):
+                    self.root.genres = OOBTree()
+                    
+                # Tworzenie indeksów dla efektywnego wyszukiwania
+                if not hasattr(self.root, "movies_by_year"):
+                    self.root.movies_by_year = OOBTree()
+                    
+                if not hasattr(self.root, "movies_by_genre"):
+                    self.root.movies_by_genre = OOBTree()
+                    
+                if not hasattr(self.root, "movies_by_director"):
+                    self.root.movies_by_director = OOBTree()
+                
+                # Migracja schematu przy starcie
+                self._migrate_schema()
+                
+                # Commitujemy inicjalizację
+                transaction.commit()
+                DatabaseManager._initialized = True
+            except Exception as e:
+                print(f"Błąd podczas inicjalizacji bazy danych: {e}")
+                if hasattr(self, 'connection') and self.connection:
+                    try:
+                        self.connection.close()
+                    except:
+                        pass
+                if hasattr(self, 'db') and self.db:
+                    try:
+                        self.db.close()
+                    except:
+                        pass
+                raise
 
     def get_root(self):
         """Zwraca obiekt root bazy danych."""
@@ -55,7 +86,9 @@ class DatabaseManager:
     
     def commit(self):
         """Zatwierdza zmiany w bazie danych."""
+        print("Zatwierdzanie transakcji...")
         transaction.commit()
+        print(f"Filmy po zatwierdzeniu: {list(self.root.movies.keys())}")
     
     def abort(self):
         """Anuluje bieżące zmiany."""
@@ -63,9 +96,22 @@ class DatabaseManager:
 
     def close(self):
         """Zamyka połączenie z bazą danych."""
-        self.connection.close()
-        self.db.close()
-        
+        try:
+            # Clear any pending changes
+            transaction.abort()
+            
+            # Close connection and database
+            if hasattr(self, 'connection') and self.connection:
+                self.connection.close()
+            if hasattr(self, 'db') and self.db:
+                self.db.close()
+            if hasattr(self, 'storage') and self.storage:
+                self.storage.close()
+                
+            print("Database connection closed properly")
+        except Exception as e:
+            print(f"Error during database closure: {e}")
+    
     def pack(self):
         """Pakuje bazę danych aby zaoszczędzić miejsce."""
         self.db.pack()

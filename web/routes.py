@@ -7,23 +7,7 @@ import json
 from flask import jsonify
 
 main = Blueprint('main', __name__)
-manager = None
-
-@main.before_request
-def create_manager():
-    """Tworzy instancję MovieManager przed każdym żądaniem."""
-    global manager
-    if manager is None:
-        db_path = os.environ.get('DB_PATH', 'db/movies.fs')
-        manager = MovieManager(db_path)
-
-@main.teardown_request
-def close_manager(exception):
-    """Zamyka połączenie z bazą danych po obsłużeniu żądania."""
-    global manager
-    if manager:
-        manager.close()
-        manager = None
+manager = MovieManager(os.environ.get('DB_PATH', 'db/movies.fs'))
 
 # ------ Strony główne ------
 
@@ -111,7 +95,8 @@ def add_movie():
                 all_actors=all_actors,
                 all_genres=all_genres
             )
-            
+        
+        # Zapisz film
         movie = manager.add_movie(
             title=title,
             director_name=director,
@@ -124,11 +109,22 @@ def add_movie():
         )
 
         print(f"Wynik dodawania: {movie}")
-        print(f"Filmy w bazie: {list(manager.movies.keys())}")
+        print(f"Filmy w bazie: {list(manager.root.movies.keys())}")
         
         if movie:
+            # Upewnij się, że zmiany zostały zapisane
+            manager.db.commit()
             flash(f'Film "{title}" został dodany')
-            return redirect(url_for('main.movie_detail', title=title))
+            
+            # Double-check that movie exists before redirecting
+            test_movie = manager.get_movie(title)
+            if test_movie:
+                print(f"Film {title} istnieje w bazie przed przekierowaniem")
+                return redirect(url_for('main.movie_detail', title=title))
+            else:
+                print(f"UWAGA: Film {title} NIE istnieje w bazie mimo dodania")
+                flash(f'Wystąpił błąd przy dodawaniu filmu "{title}"')
+                return redirect(url_for('main.list_movies'))
         else:
             flash(f'Film "{title}" już istnieje')
     
@@ -302,6 +298,22 @@ def search():
     results = manager.search_movies(query)
     return render_template('search_results.html', query=query, movies=results)
 
+@main.route('/movies/year/<int:year>')
+def movies_by_year(year):
+    """Wyświetla filmy z danego roku."""
+    movies = manager.get_movies_by_year(year)
+    return render_template('movies_list.html', 
+                         movies=movies, 
+                         title=f'Filmy z roku {year}')
+
+@main.route('/movies/director/<director_name>')
+def movies_by_director(director_name):
+    """Wyświetla filmy danego reżysera."""
+    movies = manager.get_movies_by_director(director_name)
+    return render_template('movies_list.html', 
+                         movies=movies, 
+                         title=f'Filmy reżysera: {director_name}')
+
 # ------ Zarządzanie gatunkami ------
 
 @main.route('/genres')
@@ -313,7 +325,7 @@ def list_genres():
 @main.route('/genre/<name>')
 def genre_detail(name):
     """Filmy w danym gatunku."""
-    genre = manager.genres.get(name)
+    genre = manager.root.genres.get(name)
     if not genre:
         abort(404)
         
@@ -343,7 +355,7 @@ def add_genre():
 @main.route('/edit_genre/<name>', methods=['GET', 'POST'])
 def edit_genre(name):
     """Edycja istniejącego gatunku."""
-    genre = manager.genres.get(name)
+    genre = manager.root.genres.get(name)
     if not genre:
         abort(404)
         
@@ -360,7 +372,7 @@ def edit_genre(name):
             return redirect(url_for('main.genre_detail', name=name))
             
         # Sprawdź czy nowa nazwa nie istnieje już w bazie
-        if new_name in manager.genres and new_name != name:
+        if new_name in manager.root.genres and new_name != name:
             flash(f'Gatunek "{new_name}" już istnieje')
             return render_template('edit_genre.html', genre=genre)
             
@@ -376,16 +388,16 @@ def edit_genre(name):
                 # Dodaj nowy gatunek do filmu
                 movie.add_genre(new_genre)
                 # Aktualizuj indeks gatunków
-                if name in manager.movies_by_genre and movie.title in manager.movies_by_genre[name]:
-                    del manager.movies_by_genre[name][movie.title]
-                if new_name not in manager.movies_by_genre:
-                    manager.movies_by_genre[new_name] = OOBTree()
-                manager.movies_by_genre[new_name][movie.title] = movie
+                if name in manager.root.movies_by_genre and movie.title in manager.root.movies_by_genre[name]:
+                    del manager.root.movies_by_genre[name][movie.title]
+                if new_name not in manager.root.movies_by_genre:
+                    manager.root.movies_by_genre[new_name] = OOBTree()
+                manager.root.movies_by_genre[new_name][movie.title] = movie
         
         # Usuń stary gatunek
-        del manager.genres[name]
-        if name in manager.movies_by_genre:
-            del manager.movies_by_genre[name]
+        del manager.root.genres[name]
+        if name in manager.root.movies_by_genre:
+            del manager.root.movies_by_genre[name]
             
         # Zatwierdź zmiany
         manager.db.commit()
@@ -398,7 +410,7 @@ def edit_genre(name):
 @main.route('/delete_genre/<name>', methods=['POST'])
 def delete_genre(name):
     """Usuwanie gatunku."""
-    genre = manager.genres.get(name)
+    genre = manager.root.genres.get(name)
     if not genre:
         abort(404)
         
@@ -409,9 +421,9 @@ def delete_genre(name):
                 movie.genres.remove(genre)
     
     # Usuń gatunek z kolekcji i indeksu
-    del manager.genres[name]
-    if name in manager.movies_by_genre:
-        del manager.movies_by_genre[name]
+    del manager.root.genres[name]
+    if name in manager.root.movies_by_genre:
+        del manager.root.movies_by_genre[name]
         
     # Zatwierdź zmiany
     manager.db.commit()
@@ -423,7 +435,6 @@ def delete_genre(name):
 
 @main.route('/persons')
 def list_persons():
-    """Lista wszystkich osób (aktorów i reżyserów)."""
     persons = manager.get_all_persons()
     return render_template('person_list.html', persons=persons)
 
@@ -442,7 +453,7 @@ def list_actors():
 @main.route('/person/<name>')
 def person_detail(name):
     """Szczegóły osoby (reżysera/aktora)."""
-    person = manager.persons.get(name)
+    person = manager.root.persons.get(name)
     if not person:
         abort(404)
     
@@ -456,11 +467,24 @@ def person_detail(name):
         acted_movies=acted_movies
     )
 
+@main.route('/person/<name>/delete', methods=['POST'])
+def delete_person(name):
+    print(f"Próba usunięcia osoby: {name}")  # Debug log
+    try:
+        if manager.delete_person(name):
+            flash(f'Osoba {name} została usunięta pomyślnie.', 'success')
+        else:
+            flash(f'Nie można usunąć osoby {name}.', 'error')
+    except Exception as e:
+        print(f"Błąd podczas usuwania: {str(e)}")  # Debug log
+        flash(f'Wystąpił błąd podczas usuwania osoby: {str(e)}', 'error')
+    
+    return redirect(url_for('main.list_persons'))
 
 @main.route('/edit_person/<name>', methods=['GET', 'POST'])
 def edit_person(name):
     """Edycja istniejącej osoby."""
-    person = manager.persons.get(name)
+    person = manager.root.persons.get(name)
     if not person:
         abort(404)
         
@@ -477,7 +501,7 @@ def edit_person(name):
             return redirect(url_for('main.person_detail', name=name))
             
         # Sprawdź czy nowa nazwa nie istnieje już w bazie
-        if new_name in manager.persons and new_name != name:
+        if new_name in manager.root.persons and new_name != name:
             flash(f'Osoba "{new_name}" już istnieje')
             return render_template('edit_person.html', person=person)
             
@@ -496,11 +520,11 @@ def edit_person(name):
                 new_person.movies_directed.append(movie)
             
             # Aktualizuj indeks reżyserów
-            if name in manager.movies_by_director and movie.title in manager.movies_by_director[name]:
-                del manager.movies_by_director[name][movie.title]
-            if new_name not in manager.movies_by_director:
-                manager.movies_by_director[new_name] = OOBTree()
-            manager.movies_by_director[new_name][movie.title] = movie
+            if name in manager.root.movies_by_director and movie.title in manager.root.movies_by_director[name]:
+                del manager.root.movies_by_director[name][movie.title]
+            if new_name not in manager.root.movies_by_director:
+                manager.root.movies_by_director[new_name] = OOBTree()
+            manager.root.movies_by_director[new_name][movie.title] = movie
         
         # Przenosimy filmy, w których osoba grała
         for movie in list(person.movies_acted):
@@ -519,7 +543,7 @@ def edit_person(name):
         
         # Usuń starą osobę jeśli nie ma już powiązań z filmami
         if not person.movies_directed and not person.movies_acted:
-            del manager.persons[name]
+            del manager.root.persons[name]
             
         # Zatwierdź zmiany
         manager.db.commit()
@@ -528,40 +552,6 @@ def edit_person(name):
         return redirect(url_for('main.person_detail', name=new_name))
             
     return render_template('edit_person.html', person=person)
-
-@main.route('/delete_person/<name>', methods=['POST'])
-def delete_person(name):
-    """Usuwanie osoby."""
-    person = manager.persons.get(name)
-    if not person:
-        abort(404)
-    
-    # Sprawdź powiązania z filmami
-    directed_movies = list(person.movies_directed)
-    acted_movies = list(person.movies_acted)
-    
-    # Nie pozwalamy na usunięcie reżysera, który ma filmy
-    if directed_movies:
-        flash(f'Nie można usunąć osoby "{name}", ponieważ jest reżyserem {len(directed_movies)} filmów. Najpierw zmień reżysera tych filmów.')
-        return redirect(url_for('main.person_detail', name=name))
-    
-    # Usuń osobę z obsady wszystkich filmów
-    for movie in acted_movies:
-        if person in movie.cast:
-            movie.cast.remove(person)
-    
-    # Usuń osobę z kolekcji
-    del manager.persons[name]
-    
-    # Usuń z indeksu reżyserów (na wszelki wypadek)
-    if name in manager.movies_by_director:
-        del manager.movies_by_director[name]
-        
-    # Zatwierdź zmiany
-    manager.db.commit()
-    
-    flash(f'Osoba "{name}" została usunięta')
-    return redirect(url_for('main.list_persons'))
 
 # ------ Obsługa błędów ------
 
@@ -588,18 +578,18 @@ def database_debug():
     # Pobranie danych z głównych kolekcji
     collections = {
         'movies': len(manager.movies),
-        'persons': len(manager.persons),
-        'genres': len(manager.genres),
+        'persons': len(manager.root.persons),
+        'genres': len(manager.root.genres),
         'movies_by_year': len(manager.movies_by_year),
-        'movies_by_genre': len(manager.movies_by_genre),
-        'movies_by_director': len(manager.movies_by_director)
+        'movies_by_genre': len(manager.root.movies_by_genre),
+        'movies_by_director': len(manager.root.movies_by_director)
     }
     
     # Przykładowe obiekty do inspekcji
     sample_objects = {
         'movies': list(manager.movies.values())[:5] if manager.movies else [],
-        'persons': list(manager.persons.values())[:5] if manager.persons else [],
-        'genres': list(manager.genres.values())[:5] if manager.genres else []
+        'persons': list(manager.root.persons.values())[:5] if manager.root.persons else [],
+        'genres': list(manager.root.genres.values())[:5] if manager.root.genres else []
     }
     
     # Przygotowanie danych o indeksach w formie słowników
@@ -608,12 +598,12 @@ def database_debug():
         years_data[year] = len(manager.movies_by_year[year])
     
     genres_data = {}
-    for genre in manager.movies_by_genre.keys():
-        genres_data[genre] = len(manager.movies_by_genre[genre])
+    for genre in manager.root.movies_by_genre.keys():
+        genres_data[genre] = len(manager.root.movies_by_genre[genre])
     
     directors_data = {}
-    for director in manager.movies_by_director.keys():
-        directors_data[director] = len(manager.movies_by_director[director])
+    for director in manager.root.movies_by_director.keys():
+        directors_data[director] = len(manager.root.movies_by_director[director])
     
     # Indeksy jako pojedyncze słowniki zamiast list
     indexes = {

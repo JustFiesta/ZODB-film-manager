@@ -1,5 +1,30 @@
 from web import create_app
 import sys
+import atexit
+import os
+import signal
+
+# Funkcja do obsługi zamykania aplikacji
+def cleanup():
+    from app.crud import MovieManager
+    print("Zamykanie aplikacji, zapisywanie danych...")
+    try:
+        manager = MovieManager()
+        manager.close()
+    except Exception as e:
+        print(f"Błąd podczas zamykania bazy danych: {e}")
+    print("Aplikacja została zamknięta.")
+
+# Rejestracja funkcji czyszczenia
+atexit.register(cleanup)
+
+# Obsługa sygnału SIGTERM
+def handle_sigterm(*args):
+    print("Otrzymano sygnał zamknięcia...")
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, handle_sigterm)
+signal.signal(signal.SIGINT, handle_sigterm)
 
 if __name__ == "__main__":
     app = create_app()
@@ -19,4 +44,8 @@ if __name__ == "__main__":
         runner.run(test_suite)
     else:
         # Run web app
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        try:
+            app.run(debug=True, host='0.0.0.0', port=5000)
+        except KeyboardInterrupt:
+            print("Przerwanie przez użytkownika, zamykanie aplikacji...")
+            cleanup()

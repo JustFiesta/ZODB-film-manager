@@ -33,7 +33,11 @@ class Movie(Persistent):
         self.rating = None              # Ocena (1-10)
         self.comment = ""               # Komentarz/recenzja
         self.date_added = datetime.datetime.now()  # Data dodania do bazy
-    
+        
+        # Dodaj ten film do listy filmów wyreżyserowanych przez reżysera
+        if hasattr(director, 'movies_directed') and self not in director.movies_directed:
+            director.movies_directed.append(self)
+            
     def add_genre(self, genre):
         """Dodaje gatunek do filmu i aktualizuje dwukierunkową relację"""
         if genre not in self.genres:
