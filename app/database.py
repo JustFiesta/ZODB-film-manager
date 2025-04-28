@@ -97,10 +97,8 @@ class DatabaseManager:
     def close(self):
         """Zamyka połączenie z bazą danych."""
         try:
-            # Clear any pending changes
             transaction.abort()
             
-            # Close connection and database
             if hasattr(self, 'connection') and self.connection:
                 self.connection.close()
             if hasattr(self, 'db') and self.db:
@@ -108,9 +106,9 @@ class DatabaseManager:
             if hasattr(self, 'storage') and self.storage:
                 self.storage.close()
                 
-            print("Database connection closed properly")
+            print("Baza danych została zamknięta.")
         except Exception as e:
-            print(f"Error during database closure: {e}")
+            print(f"Błąd podczas zamykania bazy: {e}")
     
     def pack(self):
         """Pakuje bazę danych aby zaoszczędzić miejsce."""

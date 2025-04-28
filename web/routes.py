@@ -577,25 +577,25 @@ def database_debug():
     """Widok debugowania zawartości bazy danych ZODB."""
     # Pobranie danych z głównych kolekcji
     collections = {
-        'movies': len(manager.movies),
+        'movies': len(manager.root.movies),
         'persons': len(manager.root.persons),
         'genres': len(manager.root.genres),
-        'movies_by_year': len(manager.movies_by_year),
+        'movies_by_year': len(manager.root.movies_by_year),
         'movies_by_genre': len(manager.root.movies_by_genre),
         'movies_by_director': len(manager.root.movies_by_director)
     }
     
     # Przykładowe obiekty do inspekcji
     sample_objects = {
-        'movies': list(manager.movies.values())[:5] if manager.movies else [],
+        'movies': list(manager.root.movies.values())[:5] if manager.root.movies else [],
         'persons': list(manager.root.persons.values())[:5] if manager.root.persons else [],
         'genres': list(manager.root.genres.values())[:5] if manager.root.genres else []
     }
     
     # Przygotowanie danych o indeksach w formie słowników
     years_data = {}
-    for year in manager.movies_by_year.keys():
-        years_data[year] = len(manager.movies_by_year[year])
+    for year in manager.root.movies_by_year.keys():
+        years_data[year] = len(manager.root.movies_by_year[year])
     
     genres_data = {}
     for genre in manager.root.movies_by_genre.keys():

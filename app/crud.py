@@ -141,34 +141,60 @@ class MovieManager:
     def delete_movie(self, title):
         """
         Usuwa film i aktualizuje wszystkie powiązane relacje.
+        
+        Args:
+            title: Tytuł filmu do usunięcia
+            
+        Returns:
+            True jeśli usunięcie się powiodło, False w przeciwnym razie
         """
         if title not in self.root.movies:
             return False
-            
+        
+        print(f"Rozpoczynam usuwanie filmu: {title}")
         movie = self.root.movies[title]
         
         # Usuń z indeksów
+        print("Usuwanie z indeksów...")
         self.db.remove_from_indexes(movie)
         
         # Usuń z list reżysera
-        if movie in movie.director.movies_directed:
+        print(f"Usuwanie z filmów reżysera: {movie.director.name}")
+        if hasattr(movie.director, 'movies_directed') and movie in movie.director.movies_directed:
             movie.director.movies_directed.remove(movie)
         
         # Usuń z list aktorów
-        for actor in movie.cast:
-            if movie in actor.movies_acted:
-                actor.movies_acted.remove(movie)
+        print(f"Usuwanie z filmów aktorów...")
+        if hasattr(movie, 'cast'):
+            for actor in list(movie.cast):  # Używamy list() aby utworzyć kopię przed modyfikacją
+                if hasattr(actor, 'movies_acted') and movie in actor.movies_acted:
+                    actor.movies_acted.remove(movie)
+                if actor in movie.cast:
+                    movie.cast.remove(actor)
                 
         # Usuń z list gatunków
-        for genre in movie.genres:
-            if movie in genre.movies:
-                genre.movies.remove(movie)
+        print(f"Usuwanie z gatunków...")
+        if hasattr(movie, 'genres'):
+            for genre in list(movie.genres):  # Używamy list() aby utworzyć kopię przed modyfikacją
+                if hasattr(genre, 'movies') and movie in genre.movies:
+                    genre.movies.remove(movie)
+                if genre in movie.genres:
+                    movie.genres.remove(genre)
         
         # Usuń film
         del self.root.movies[title]
         
         # Zatwierdź zmiany
         self.db.commit()
+        print(f"Film {title} został usunięty")
+        
+        # Pakowanie bazy danych, aby usunąć stare wersje obiektów
+        try:
+            self.db.pack()
+            print("Baza danych została spakowana")
+        except:
+            print("Pakowanie bazy danych nie powiodło się, ale film został usunięty")
+        
         return True
 
     def list_movies(self, limit=None, sort_by=None, watched_only=False, with_rating_only=False):
@@ -403,11 +429,6 @@ class MovieManager:
     
     def close(self):
         """Zamyka połączenie z bazą danych."""
-        # Wykonaj commit przed zamknięciem
-        try:
-            self.db.commit()
-        except:
-            pass
         self.db.close()
         
     def pack_database(self):
