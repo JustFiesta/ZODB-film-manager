@@ -172,11 +172,11 @@
                         </li>
                         <li class="list-group-item">
                             <i class="bi bi-calendar-event"></i> 
-                            <a href="{{ url_for('main.get_movies_by_year', year=movie.year) }}">Roku ({{ movie.year }})</a>
+                            <a href="{{ url_for('main.movies_by_year', year=movie.year) }}">Roku ({{ movie.year }})</a>
                         </li>
                         <li class="list-group-item">
                             <i class="bi bi-person-video"></i> 
-                            <a href="{{ url_for('main.get_movies_by_director', director_name=movie.director.name) }}">Reżyserze ({{ movie.director.name }})</a>
+                            <a href="{{ url_for('main.movies_by_director', director_name=movie.director.name) }}">Reżyserze ({{ movie.director.name }})</a>
                         </li>
                         {% if movie.genres %}
                             <li class="list-group-item">

@@ -132,7 +132,7 @@ def add_actor(self, actor):
             // Tworzymy formularz dynamicznie
             const form = document.createElement('form');
             form.method = 'post';
-            form.action = `/delete_person/${actorName}`;
+            form.action = `/person/${actorName}/delete`;
             document.body.appendChild(form);
             form.submit();
         }
