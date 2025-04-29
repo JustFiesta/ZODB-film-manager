@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block title %}404 - Nie znaleziono{% endblock %}
+
+{% block content %}
+<div class="text-center my-5">
+    <h1 class="display-1">404</h1>
+    <h2 class="mb-4">Strona nie została znaleziona</h2>
+    <p class="lead">Przepraszamy, ale strona, której szukasz, nie istnieje.</p>
+    
+    <div class="zodb-feature mt-4 p-4 mx-auto" style="max-width: 600px;">
+        <h3>Nawet ZODB nie może znaleźć tego obiektu!</h3>
+        <p>W ZODB, podobnie jak w tej aplikacji, obiekty są identyfikowane przez klucze. Jeśli klucz nie istnieje, obiekt nie może zostać znaleziony.</p>
+        <pre><code class="bg-light p-2 d-inline-block">
+try:
+    # Próba znalezienia obiektu po kluczu
+    object = root.collection[key]
+except KeyError:
+    # Obiekt nie istnieje - jak ta strona!
+    return "404 - Nie znaleziono"
+        </code></pre>
+    </div>
+    
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary mt-3">
+        <i class="bi bi-house-fill"></i> Wróć do strony głównej
+    </a>
+</div>
+{% endblock %}

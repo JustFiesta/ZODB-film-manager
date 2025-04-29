@@ -1,0 +1,208 @@
+/* Custom styles for ZODB Movie Manager */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+footer {
+    margin-top: auto;
+}
+
+.movie-card {
+    transition: transform 0.3s;
+}
+
+.movie-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.rating-stars {
+    color: #ffc107;
+}
+
+.genre-badge {
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.object-relationship {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #0d6efd;
+}
+
+.object-relationship h4 {
+    color: #0d6efd;
+    margin-bottom: 10px;
+}
+
+.relationship-arrow {
+    text-align: center;
+    font-size: 24px;
+    color: #6c757d;
+    margin: 10px 0;
+}
+
+.zodb-feature {
+    background-color: #e9ecef;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.zodb-feature h3 {
+    color: #0d6efd;
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.zodb-feature-highlight {
+    background-color: #cfe2ff;
+    border-left: 3px solid #0d6efd;
+}
+
+.watchlist-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Custom scrollbar for code examples */
+pre::-webkit-scrollbar {
+    height: 8px;
+    background-color: #f5f5f5;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background-color: #0d6efd;
+    border-radius: 4px;
+}
+
+/* Rating form */
+.rating-form .score-buttons {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.rating-form .score-buttons button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.rating-form .score-buttons button.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+/* Demo database structure visualization */
+.db-structure {
+    margin: 30px 0;
+    position: relative;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.db-object {
+    border: 2px solid #0d6efd;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.db-object h5 {
+    color: #0d6efd;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.db-object-property {
+    margin-bottom: 5px;
+    font-family: monospace;
+}
+
+.db-object-reference {
+    font-weight: bold;
+    color: #198754;
+}
+
+.db-relation {
+    position: absolute;
+    border-top: 2px dashed #6c757d;
+    z-index: 0;
+}
+
+.db-relation-label {
+    position: absolute;
+    background-color: white;
+    padding: 0 5px;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* Movie details page */
+.movie-details {
+    margin-bottom: 30px;
+}
+
+.movie-details .movie-title {
+    font-size: 2.5rem;
+    margin-bottom: 5px;
+}
+
+.movie-details .movie-meta {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.ratings-section {
+    margin-top: 30px;
+}
+
+.rating-card {
+    border-left: 3px solid #0d6efd;
+    margin-bottom: 15px;
+}
+
+.rating-date {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* User profile page */
+.user-stats {
+    display: flex;
+    margin-bottom: 30px;
+}
+
+.stat-box {
+    flex: 1;
+    text-align: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    margin: 0 10px;
+}
+
+.stat-box .stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.stat-box .stat-label {
+    color: #6c757d;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}

@@ -1,0 +1,191 @@
+{% extends "layout.html" %}
+
+{% block title %}Edytuj: {{ movie.title }} - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2>Edytuj film</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('main.edit_movie', title=movie.title) }}">
+                    <!-- Podstawowe informacje o filmie -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Tytuł</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ movie.title }}" disabled>
+                        <div class="form-text">Tytułu nie można zmienić (jest to identyfikator filmu).</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Rok produkcji</label>
+                        <input type="number" class="form-control" id="year" name="year" min="1900" max="2099" value="{{ movie.year }}" required>
+                    </div>
+                    
+                    <!-- Reżyser - wybór istniejącego lub dodanie nowego -->
+                    <div class="mb-3">
+                        <label for="director" class="form-label">Reżyser</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="director" name="director" 
+                                   list="director-list" value="{{ movie.director.name }}" required>
+                            <datalist id="director-list">
+                                {% for director in all_directors %}
+                                    <option value="{{ director.name }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="form-text">Wybierz z listy lub wpisz nowego reżysera.</div>
+                    </div>
+                    
+                    <!-- Aktorzy - dodanie wielu oddzielonych przecinkami -->
+                    <div class="mb-3">
+                        <label for="actors" class="form-label">Aktorzy</label>
+                        <textarea class="form-control" id="actors" name="actors" rows="2">{{ current_actors }}</textarea>
+                        <div class="form-text">Wpisz imiona i nazwiska aktorów oddzielone przecinkami.</div>
+                        <div class="mt-2">
+                            <span class="fw-bold">Istniejący aktorzy:</span>
+                            <div class="d-flex flex-wrap gap-2 mt-1">
+                                {% for actor in all_actors %}
+                                    <span class="badge bg-secondary actor-badge" 
+                                          onclick="addActor('{{ actor.name }}')">{{ actor.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gatunki - wybór wielu z listy plus możliwość dodania nowych -->
+                    <div class="mb-3">
+                        <label class="form-label">Gatunki</label>
+                        <div class="row mb-2">
+                            <div class="col">
+                                <select multiple class="form-select" id="genres" name="genres" size="5">
+                                    {% for genre in all_genres %}
+                                        <option value="{{ genre.name }}" 
+                                            {% if genre in movie.genres %}selected{% endif %}>
+                                            {{ genre.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Przytrzymaj Ctrl, aby wybrać wiele gatunków.</div>
+                            </div>
+                        </div>
+                        <label for="new_genres" class="form-label">Dodaj nowe gatunki</label>
+                        <input type="text" class="form-control" id="new_genres" name="new_genres">
+                        <div class="form-text">Wpisz nowe gatunki oddzielone przecinkami.</div>
+                    </div>
+                    
+                    <!-- Ocena i komentarz -->
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Ocena (1-10)</label>
+                        <input type="number" class="form-control" id="rating" name="rating" 
+                               min="1" max="10" value="{{ movie.rating }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Komentarz/Recenzja</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3">{{ movie.comment }}</textarea>
+                    </div>
+                    
+                    <!-- Data obejrzenia -->
+                    <div class="mb-3">
+                        <label for="date_watched" class="form-label">Data obejrzenia</label>
+                        <input type="date" class="form-control" id="date_watched" name="date_watched" 
+                              {% if movie.date_watched %}value="{{ movie.date_watched.strftime('%Y-%m-%d') }}"{% endif %}>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                        <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="btn btn-outline-secondary">Anuluj</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>ZODB: Zarządzanie relacjami</h4>
+            </div>
+            <div class="card-body">
+                <div class="zodb-feature zodb-feature-highlight">
+                    <h3>Aktualizacja relacji</h3>
+                    <p>Podczas edycji filmu, ZODB:</p>
+                    <ul>
+                        <li>Aktualizuje dwukierunkowe relacje między wszystkimi obiektami</li>
+                        <li>Czyści stare powiązania i tworzy nowe</li>
+                        <li>Aktualizuje indeksy BTrees dla wydajnego wyszukiwania</li>
+                        <li>Wszystko dzieje się automatycznie w ramach jednej transakcji</li>
+                    </ul>
+                </div>
+                
+                <div class="zodb-feature mt-3">
+                    <h3>Przezroczysta trwałość</h3>
+                    <p>ZODB automatycznie śledzi wszystkie zmiany obiektów:</p>
+                    <pre><code># Modyfikacja obiektu
+movie.rating = 8
+movie.comment = "Świetny film!"
+
+# Obiekty są automatycznie oznaczane 
+# jako zmodyfikowane
+
+# Zatwierdzenie wszystkich zmian
+transaction.commit()</code></pre>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h4>Zarządzanie</h4>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="btn btn-outline-primary">Wróć do szczegółów</a>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                        Usuń film
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal potwierdzenia usunięcia -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Potwierdzenie usunięcia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+            </div>
+            <div class="modal-body">
+                Czy na pewno chcesz usunąć film "{{ movie.title }}"? Ta operacja jest nieodwracalna.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <form action="{{ url_for('main.delete_movie', title=movie.title) }}" method="post">
+                    <button type="submit" class="btn btn-danger">Usuń</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    function addActor(name) {
+        let actorsField = document.getElementById('actors');
+        let currentValue = actorsField.value;
+        
+        if (currentValue && !currentValue.endsWith(',') && currentValue.length > 0) {
+            actorsField.value = currentValue + ', ' + name;
+        } else {
+            actorsField.value = currentValue + name;
+        }
+    }
+</script>
+{% endblock %}
+
+{% endblock %}

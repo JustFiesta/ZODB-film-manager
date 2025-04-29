@@ -1,0 +1,162 @@
+{% extends "layout.html" %}
+
+{% block title %}Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="jumbotron p-5 mb-4 bg-light rounded-3">
+    <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">Witaj w Menedżerze Filmów ZODB</h1>
+        <p class="col-md-8 fs-4">Demonstracja możliwości obiektowej bazy danych ZODB, 
+           pozwalająca na zarządzanie kolekcją filmów.</p>
+        <div class="d-flex gap-2 mt-3">
+            <a href="{{ url_for('main.list_movies') }}" class="btn btn-primary btn-lg">Przeglądaj Filmy</a>
+            <a href="{{ url_for('main.add_movie') }}" class="btn btn-outline-primary btn-lg">Dodaj Nowy Film</a>
+        </div>
+    </div>
+</div>
+
+<h2 class="mb-4">Ostatnio Dodane Filmy</h2>
+
+<div class="row">
+    {% if movies %}
+        {% for movie in movies %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 movie-card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ movie.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ movie.year }}</h6>
+                        <p class="card-text">
+                            Reżyseria: {{ movie.director.name }}
+                        </p>
+                        
+                        {% if movie.genres %}
+                            <p class="card-text">
+                                {% for genre in movie.genres %}
+                                    <span class="badge bg-secondary">{{ genre.name }}</span>
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                        
+                        {% if movie.rating %}
+                            <p class="card-text">
+                                <span class="badge bg-warning text-dark">{{ movie.rating }}/10</span>
+                                {% if movie.date_watched %}
+                                    <small class="text-muted">
+                                        Obejrzano: {{ movie.date_watched.strftime('%d.%m.%Y') }}
+                                    </small>
+                                {% endif %}
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="btn btn-primary">Zobacz Szczegóły</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <p>Nie znaleziono filmów. <a href="{{ url_for('main.add_movie') }}">Dodaj teraz</a>.</p>
+        </div>
+    {% endif %}
+</div>
+
+<hr class="my-4">
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Zalety ZODB</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>Przezroczysta trwałość</strong> - obiekty Pythona są automatycznie zapisywane w bazie
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Naturalne relacje obiektowe</strong> - bez złożonych zapytań SQL i mapowania ORM
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Transakcyjność</strong> - zmiany są atomowe, spójne i izolowane
+                    </li>
+                    <li class="list-group-item">
+                        <strong>BTrees dla wydajności</strong> - efektywne indeksy dla szybkiego wyszukiwania
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Obiektowy model danych</strong> - intuicyjny dla programistów Pythona
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Funkcje Aplikacji</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <i class="bi bi-film"></i> Zarządzanie kolekcją filmów
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-star"></i> Ocenianie i recenzowanie filmów
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-search"></i> Wyszukiwanie według tytułu, reżysera, aktora lub gatunku
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-tags"></i> Organizacja filmów według gatunków
+                    </li>
+                    <li class="list-group-item">
+                        <i class="bi bi-sort-numeric-down"></i> Sortowanie według roku, oceny lub daty dodania
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="zodb-feature-highlight p-4 rounded">
+    <h3 class="mb-3">Dlaczego ZODB?</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>W tradycyjnej bazie relacyjnej:</h4>
+            <pre class="bg-light p-3 rounded">
+# Tworzenie zapytania dla filmu i powiązanych danych
+query = """
+SELECT f.id, f.title, f.year, d.name, g.name 
+FROM films f
+JOIN directors d ON f.director_id = d.id
+JOIN film_genres fg ON f.id = fg.film_id
+JOIN genres g ON fg.genre_id = g.id
+WHERE f.id = ?
+"""
+cursor.execute(query, [film_id])
+result = cursor.fetchall()
+
+# Mapowanie wyników na obiekty
+film = Film(result[0][0], result[0][1], result[0][2])
+film.director = Director(result[0][3])
+film.genres = [Genre(r[4]) for r in result]</pre>
+        </div>
+        <div class="col-md-6">
+            <h4>W ZODB:</h4>
+            <pre class="bg-light p-3 rounded">
+# Pobieranie filmu bezpośrednio z BTree
+film = db.movies["Tytuł filmu"]
+
+# Wszystkie relacje są już dostępne jako obiekty
+director_name = film.director.name
+
+# Dodawanie nowego gatunku i utrzymanie relacji
+genre = Genre("Nowy gatunek")
+film.add_genre(genre)  # Aktualizuje obie strony relacji
+
+# Zapisanie zmian
+transaction.commit()</pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

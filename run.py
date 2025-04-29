@@ -1,29 +1,74 @@
-from app.crud import MovieManager
+"""
+Punkt wejścia aplikacji webowej opartej na ZODB.
+- Obsługuje zamykanie aplikacji (cleanup) i sygnały SIGTERM/SIGINT.
+- Uruchamia aplikację na hoście `0.0.0.0` i porcie `5000`.
+"""
+import sys
+import atexit
+import signal
+from web import create_app
+import transaction
 
-# Ten plik powinien służyć do uruchamiania całej apki
-# Obecnie służy jako przykład do uruchomienia bazy i movie managera
+# Funkcja do obsługi zamykania aplikacji
+def cleanup():
+    """
+    Funkcja czyszcząca, która jest wywoływana przy zamykaniu aplikacji.
+    Zatwierdza transakcje i zamyka połączenia z bazą danych.
+    """
+    from app.crud import MovieManager
+    print("\nZamykanie aplikacji, zapisywanie danych...")
+    try:
+        try:
+            transaction.commit()
+            print("Główna transakcja zatwierdzona")
+        except Exception as e:
+            print(f"Błąd podczas zatwierdzania głównej transakcji: {e}")
 
-# Inicjalizacja
-manager = MovieManager()
+        # Zamknij menedżera filmów
+        try:
+            manager = MovieManager()
+            if hasattr(manager, 'db'):
+                print("Zamykanie bazy danych przez MovieManager")
+                if hasattr(manager.db, 'commit'):
+                    manager.db.commit()
 
-# Dodajemy filmy
-manager.add_movie("Inception", "Christopher Nolan", 2010)
-manager.add_movie("The Matrix", "Wachowski Sisters", 1999)
+                # Sprawdź czy MovieManager ma metodę close
+                if hasattr(manager, 'close'):
+                    manager.close()
+                else:
+                    print("MovieManager nie ma metody close, zamykanie przez DatabaseManager")
+                    manager.db.close()
+            else:
+                print("MovieManager nie ma obiektu db")
+        except Exception as e:
+            print(f"Błąd podczas zamykania bazy danych: {e}")
+    except Exception as e:
+        print(f"Błąd podczas zamykania aplikacji: {e}")
+    print("Aplikacja została zamknięta.")
 
-# Pobieramy filmy
-print(manager.get_movie("Inception"))
+# Rejestracja funkcji czyszczenia
+atexit.register(cleanup)
 
-# Aktualizujemy film
-manager.update_movie("The Matrix", new_year=2000)
+# Obsługa sygnału SIGTERM
+def handle_sigterm(*args):
+    print("Otrzymano sygnał zamknięcia...")
+    # Upewnij się, że transakcje są zatwierdzone
+    transaction.commit()
+    # Wykonaj czyszczenie
+    cleanup()
+    sys.exit(0)
 
-# Lista filmów
-print(manager.list_movies())
+signal.signal(signal.SIGTERM, handle_sigterm)
+signal.signal(signal.SIGINT, handle_sigterm)
 
-# Usuwamy film
-manager.delete_movie("Inception")
+if __name__ == "__main__":
+    app = create_app()
 
-# Sprawdzamy listę po usunięciu
-print(manager.list_movies())
-
-# Zamykamy bazę
-manager.close()
+    # Run web app
+    try:
+        app.run(debug=True, host='0.0.0.0', port=5000)
+    except KeyboardInterrupt:
+        print("Przerwanie przez użytkownika, zamykanie aplikacji...")
+        # Upewnij się, że transakcje są zatwierdzone
+        transaction.commit()
+        cleanup()

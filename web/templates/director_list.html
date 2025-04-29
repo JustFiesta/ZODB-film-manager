@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+
+{% block title %}Reżyserzy - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Reżyserzy</h1>
+    <div class="btn-group">
+        <a href="{{ url_for('main.list_persons') }}" class="btn btn-outline-primary">
+            <i class="bi bi-people"></i> Wszystkie osoby
+        </a>
+        <a href="{{ url_for('main.list_actors') }}" class="btn btn-outline-primary">
+            <i class="bi bi-person-badge"></i> Aktorzy
+        </a>
+    </div>
+</div>
+
+<div class="zodb-feature mb-4">
+    <h3>Reżyserzy w ZODB</h3>
+    <p>W ZODB reżyserzy są przechowywani jako obiekty Person z relacjami do wyreżyserowanych filmów. Dzięki kolekcji PersistentList możemy łatwo znaleźć wszystkie filmy danego reżysera.</p>
+</div>
+
+<div class="row">
+    {% if directors %}
+        {% for director in directors %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ director.name }}</h5>
+                        
+                        <div class="mt-2">
+                            <strong>Filmy wyreżyserowane:</strong>
+                            <span class="badge bg-primary">{{ director.movies_directed|length }}</span>
+                        </div>
+                        
+                        {% if director.movies_directed %}
+                            <ul class="list-unstyled mt-2">
+                                {% for movie in director.movies_directed[:3] %}
+                                    <li>
+                                        <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="text-decoration-none">
+                                            • {{ movie.title }} ({{ movie.year }})
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                                {% if director.movies_directed|length > 3 %}
+                                    <li class="text-muted">...i {{ director.movies_directed|length - 3 }} więcej</li>
+                                {% endif %}
+                            </ul>
+                        {% endif %}
+                        
+                        {% if director.movies_acted %}
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    Występuje również jako aktor w {{ director.movies_acted|length }} filmach.
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent d-flex justify-content-between">
+                        <a href="{{ url_for('main.person_detail', name=director.name) }}" class="btn btn-primary">
+                            <i class="bi bi-info-circle"></i> Szczegóły
+                        </a>
+                        <div class="btn-group">
+                            <a href="{{ url_for('main.edit_person', name=director.name) }}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-outline-danger" disabled title="Nie można usunąć reżysera, który ma filmy">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Brak reżyserów w bazie danych. 
+                <a href="{{ url_for('main.add_movie') }}" class="alert-link">Dodaj film</a>, aby dodać reżysera.
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="object-relationship mt-4">
+    <h4>ZODB: Relacje między reżyserami a filmami</h4>
+    <div class="p-4 bg-light rounded">
+        <p>W ZODB relacje między reżyserami a filmami są utrzymywane w obu kierunkach:</p>
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Relacja z filmu do reżysera:</h5>
+                <pre class="bg-light p-2 rounded"><code class="python">class Movie(Persistent):
+    def __init__(self, title, director, year):
+        self.title = title
+        self.director = director  # Referencja do obiektu Person
+        # ...
+        
+# Bezpośredni dostęp do reżysera filmu
+director_name = movie.director.name</code></pre>
+            </div>
+            <div class="col-md-6">
+                <h5>Relacja z reżysera do filmów:</h5>
+                <pre class="bg-light p-2 rounded"><code class="python">class Person(Persistent):
+    def __init__(self, name):
+        self.name = name
+        self.movies_directed = PersistentList()
+        # ...
+        
+# Dodawanie filmu do listy filmów reżysera
+director.movies_directed.append(movie)
+
+# Pobieranie wszystkich filmów reżysera
+films = list(director.movies_directed)</code></pre>
+            </div>
+        </div>
+        <p class="mt-3">Dzięki temu możemy łatwo nawigować między filmami a reżyserami w obu kierunkach, bez potrzeby stosowania złożonych zapytań JOIN jak w tradycyjnych bazach SQL.</p>
+    </div>
+</div>
+{% endblock %}

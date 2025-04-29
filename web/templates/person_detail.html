@@ -1,0 +1,201 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ person.name }} - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1>{{ person.name }}</h1>
+</div>
+
+<div class="d-flex justify-content-end mb-3">
+    <div class="btn-group">
+        <a href="{{ url_for('main.edit_person', name=person.name) }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Edytuj osobę
+        </a>
+        <form action="{{ url_for('main.delete_person', name=person.name) }}" method="POST" class="delete-form">
+            <button type="submit" class="btn btn-danger" {% if person.movies_directed %}disabled{% endif %}>
+                Usuń
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        {% if directed_movies %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Filmy wyreżyserowane</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for movie in directed_movies %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ movie.title }}</h5>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ movie.year }}</h6>
+                                        
+                                        {% if movie.genres %}
+                                            <p class="card-text">
+                                                {% for genre in movie.genres %}
+                                                    <span class="badge bg-secondary">{{ genre.name }}</span>
+                                                {% endfor %}
+                                            </p>
+                                        {% endif %}
+                                        
+                                        {% if movie.rating %}
+                                            <p class="card-text">
+                                                <span class="badge bg-warning text-dark">{{ movie.rating }}/10</span>
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="btn btn-primary btn-sm">Szczegóły</a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if acted_movies %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>Filmy z udziałem</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for movie in acted_movies %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ movie.title }}</h5>
+                                        <h6 class="card-subtitle mb-2 text-muted">{{ movie.year }}</h6>
+                                        <p class="card-text">
+                                            Reżyseria: {{ movie.director.name }}
+                                        </p>
+                                        
+                                        {% if movie.genres %}
+                                            <p class="card-text">
+                                                {% for genre in movie.genres %}
+                                                    <span class="badge bg-secondary">{{ genre.name }}</span>
+                                                {% endfor %}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <a href="{{ url_for('main.movie_detail', title=movie.title) }}" class="btn btn-primary btn-sm">Szczegóły</a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if not directed_movies and not acted_movies %}
+            <div class="alert alert-info">
+                Brak filmów powiązanych z tą osobą. 
+                <a href="{{ url_for('main.add_movie') }}" class="alert-link">Dodaj film</a> z udziałem {{ person.name }}.
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Informacje</h4>
+            </div>
+            <div class="card-body">
+                <p><strong>Imię i nazwisko:</strong> {{ person.name }}</p>
+                <p><strong>Funkcje:</strong>
+                    {% if directed_movies %}
+                        <span class="badge bg-primary">Reżyser</span>
+                    {% endif %}
+                    {% if acted_movies %}
+                        <span class="badge bg-info text-dark">Aktor</span>
+                    {% endif %}
+                </p>
+                <p><strong>Liczba wyreżyserowanych filmów:</strong> {{ directed_movies|length }}</p>
+                <p><strong>Liczba filmów jako aktor:</strong> {{ acted_movies|length }}</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">ZODB: Relacje dwukierunkowe</h4>
+            </div>
+            <div class="card-body">
+                <div class="zodb-feature zodb-feature-highlight">
+                    <p>ZODB automatycznie zarządza dwukierunkowymi relacjami między osobami i filmami:</p>
+                    <pre class="bg-light p-2"><code>class Person(Persistent):
+    def __init__(self, name):
+        self.name = name
+        self.movies_directed = PersistentList()
+        self.movies_acted = PersistentList()
+
+class Movie(Persistent):
+    def __init__(self, title, director, year):
+        self.title = title
+        self.director = director
+        self.cast = PersistentList()
+        # ...
+    
+    def add_actor(self, actor):
+        self.cast.append(actor)
+        actor.movies_acted.append(self)</code></pre>
+                    <p class="mb-0">Dzięki temu możemy łatwo nawigować z obiektu osoby do filmów i z powrotem bez potrzeby złożonych zapytań lub JOIN-ów.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('main.list_persons') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Wróć do listy osób
+    </a>
+</div>
+
+
+<!-- Modal potwierdzenia usunięcia osoby -->
+<div class="modal fade" id="deletePersonModal" tabindex="-1" aria-labelledby="deletePersonModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deletePersonModalLabel">Potwierdzenie usunięcia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zamknij"></button>
+            </div>
+            <div class="modal-body">
+                <p>Czy na pewno chcesz usunąć osobę "{{ person.name }}"?</p>
+                
+                {% if person.movies_directed %}
+                    <div class="alert alert-danger">
+                        <strong>Uwaga!</strong> Nie można usunąć osoby, która jest reżyserem filmów.
+                        Najpierw zmień reżysera tych filmów.
+                    </div>
+                {% endif %}
+                
+                {% if person.movies_acted %}
+                    <div class="alert alert-warning">
+                        <strong>Uwaga!</strong> Ta osoba występuje w {{ person.movies_acted|length }} filmach. 
+                        Usunięcie spowoduje usunięcie jej z obsady tych filmów.
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <form action="{{ url_for('main.delete_person', name=person.name) }}" method="POST" class="delete-form" onsubmit="return confirm('Czy na pewno chcesz usunąć tę osobę?');">
+                    <button type="submit" class="btn btn-danger" {% if person.movies_directed or person.movies_acted %}disabled{% endif %}>
+                        Usuń
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

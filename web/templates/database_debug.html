@@ -1,0 +1,281 @@
+{% extends "layout.html" %}
+
+{% block title %}ZODB Debug - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">ZODB Database Debug</h1>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">Collections Overview</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for collection, count in collections.items() %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ collection }}</h5>
+                                    <h3 class="card-text text-center">{{ count }}</h3>
+                                    <p class="card-text text-muted text-center">objects</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="movies-tab" data-bs-toggle="tab" data-bs-target="#movies" type="button" role="tab">
+                    Movies
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="persons-tab" data-bs-toggle="tab" data-bs-target="#persons" type="button" role="tab">
+                    Persons
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="genres-tab" data-bs-toggle="tab" data-bs-target="#genres" type="button" role="tab">
+                    Genres
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="indexes-tab" data-bs-toggle="tab" data-bs-target="#indexes" type="button" role="tab">
+                    Indexes
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="myTabContent">
+            <!-- Movies Tab -->
+            <div class="tab-pane fade show active" id="movies" role="tabpanel">
+                <div class="card border-top-0 rounded-0 rounded-bottom">
+                    <div class="card-body">
+                        <h4>Movies (up to 5 shown)</h4>
+                        {% if sample_objects.movies %}
+                            <div class="accordion" id="moviesAccordion">
+                                {% for movie in sample_objects.movies %}
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                    data-bs-target="#movie{{ loop.index }}">
+                                                {{ movie.title }} ({{ movie.year }})
+                                            </button>
+                                        </h2>
+                                        <div id="movie{{ loop.index }}" class="accordion-collapse collapse">
+                                            <div class="accordion-body">
+                                                <pre class="bg-light p-3 rounded"><code>Title: {{ movie.title }}
+Year: {{ movie.year }}
+Director: {{ movie.director.name if movie.director else 'None' }}
+Rating: {{ movie.rating if movie.rating else 'None' }}
+Date Watched: {{ movie.date_watched if movie.date_watched else 'None' }}
+Date Added: {{ movie.date_added }}
+Comment: {{ movie.comment if movie.comment else 'None' }}
+
+Genres ({{ movie.genres|length }}):
+{% for genre in movie.genres %}  - {{ genre.name }}
+{% else %}  None{% endfor %}
+
+Cast ({{ movie.cast|length }}):
+{% for actor in movie.cast %}  - {{ actor.name }}
+{% else %}  None{% endfor %}</code></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">No movies in database</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Persons Tab -->
+            <div class="tab-pane fade" id="persons" role="tabpanel">
+                <div class="card border-top-0 rounded-0 rounded-bottom">
+                    <div class="card-body">
+                        <h4>Persons (up to 5 shown)</h4>
+                        {% if sample_objects.persons %}
+                            <div class="accordion" id="personsAccordion">
+                                {% for person in sample_objects.persons %}
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                    data-bs-target="#person{{ loop.index }}">
+                                                {{ person.name }}
+                                                {% if person.movies_directed %}
+                                                    <span class="badge bg-primary ms-2">Director</span>
+                                                {% endif %}
+                                                {% if person.movies_acted %}
+                                                    <span class="badge bg-info text-dark ms-2">Actor</span>
+                                                {% endif %}
+                                            </button>
+                                        </h2>
+                                        <div id="person{{ loop.index }}" class="accordion-collapse collapse">
+                                            <div class="accordion-body">
+                                                <pre class="bg-light p-3 rounded"><code>Name: {{ person.name }}
+
+Directed movies ({{ person.movies_directed|length }}):
+{% for movie in person.movies_directed %}  - {{ movie.title }} ({{ movie.year }})
+{% else %}  None{% endfor %}
+
+Acting roles ({{ person.movies_acted|length }}):
+{% for movie in person.movies_acted %}  - {{ movie.title }} ({{ movie.year }})
+{% else %}  None{% endfor %}</code></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">No persons in database</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Genres Tab -->
+            <div class="tab-pane fade" id="genres" role="tabpanel">
+                <div class="card border-top-0 rounded-0 rounded-bottom">
+                    <div class="card-body">
+                        <h4>Genres (up to 5 shown)</h4>
+                        {% if sample_objects.genres %}
+                            <div class="accordion" id="genresAccordion">
+                                {% for genre in sample_objects.genres %}
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                                    data-bs-target="#genre{{ loop.index }}">
+                                                {{ genre.name }} ({{ genre.movies|length }} movies)
+                                            </button>
+                                        </h2>
+                                        <div id="genre{{ loop.index }}" class="accordion-collapse collapse">
+                                            <div class="accordion-body">
+                                                <pre class="bg-light p-3 rounded"><code>Name: {{ genre.name }}
+
+Movies ({{ genre.movies|length }}):
+{% for movie in genre.movies %}  - {{ movie.title }} ({{ movie.year }})
+{% else %}  None{% endfor %}</code></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">No genres in database</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Indexes Tab -->
+            <div class="tab-pane fade" id="indexes" role="tabpanel">
+                <div class="card border-top-0 rounded-0 rounded-bottom">
+                    <div class="card-body">
+                        <h4>ZODB Indexes</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Years</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if indexes.years %}
+                                            <ul class="list-group">
+                                                {% for year, count in indexes.years.items() %}
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        {{ year }}
+                                                        <span class="badge bg-primary rounded-pill">
+                                                            {{ count }}
+                                                        </span>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <div class="alert alert-info">No year indexes</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Genres</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if indexes.genres %}
+                                            <ul class="list-group">
+                                                {% for genre, count in indexes.genres.items() %}
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        {{ genre }}
+                                                        <span class="badge bg-primary rounded-pill">
+                                                            {{ count }}
+                                                        </span>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <div class="alert alert-info">No genre indexes</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Directors</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if indexes.directors %}
+                                            <ul class="list-group">
+                                                {% for director, count in indexes.directors.items() %}
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        {{ director }}
+                                                        <span class="badge bg-primary rounded-pill">
+                                                            {{ count }}
+                                                        </span>
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <div class="alert alert-info">No director indexes</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-dark text-white">
+        <h3 class="mb-0">ZODB Root Object</h3>
+    </div>
+    <div class="card-body">
+        <pre class="bg-light p-3 rounded"><code>root
+├── movies (OOBTree, {{ collections.movies }} items)
+├── persons (OOBTree, {{ collections.persons }} items)
+├── genres (OOBTree, {{ collections.genres }} items)
+├── movies_by_year (OOBTree, {{ collections.movies_by_year }} items)
+├── movies_by_genre (OOBTree, {{ collections.movies_by_genre }} items)
+└── movies_by_director (OOBTree, {{ collections.movies_by_director }} items)</code></pre>
+    </div>
+</div>
+{% endblock %}

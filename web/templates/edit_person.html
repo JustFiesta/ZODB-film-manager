@@ -1,0 +1,102 @@
+{% extends "layout.html" %}
+
+{% block title %}Edytuj osobę: {{ person.name }} - Menedżer Filmów ZODB{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h2>Edytuj osobę</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('main.edit_person', name=person.name) }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Imię i nazwisko</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ person.name }}" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                        <a href="{{ url_for('main.person_detail', name=person.name) }}" class="btn btn-outline-secondary">Anuluj</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if person.movies_directed %}
+            <div class="card mt-4 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h4>Uwaga: Reżyser filmów</h4>
+                </div>
+                <div class="card-body">
+                    <p>Ta osoba jest reżyserem następujących filmów:</p>
+                    <ul>
+                        {% for movie in person.movies_directed %}
+                            <li>{{ movie.title }} ({{ movie.year }})</li>
+                        {% endfor %}
+                    </ul>
+                    <p>Zmiana nazwiska spowoduje aktualizację reżysera we wszystkich tych filmach.</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if person.movies_acted %}
+            <div class="card mt-4 border-info">
+                <div class="card-header bg-info text-dark">
+                    <h4>Uwaga: Aktor w filmach</h4>
+                </div>
+                <div class="card-body">
+                    <p>Ta osoba występuje w obsadzie następujących filmów:</p>
+                    <ul>
+                        {% for movie in person.movies_acted %}
+                            <li>{{ movie.title }} ({{ movie.year }})</li>
+                        {% endfor %}
+                    </ul>
+                    <p>Zmiana nazwiska spowoduje aktualizację nazwiska aktora we wszystkich tych filmach.</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h4>Obiekty w ZODB</h4>
+            </div>
+            <div class="card-body">
+                <div class="zodb-feature p-3">
+                    <p>W ZODB, aktualizacja klucza obiektu Person wymaga specjalnego podejścia:</p>
+                    <pre><code class="python"># Aby "zmienić" nazwę osoby w ZODB:
+new_person = Person(new_name)  # Tworzymy nową osobę
+root.persons[new_name] = new_person  # Dodajemy pod nowym kluczem
+
+# Przenosimy relacje z filmami
+for movie in old_person.movies_directed:
+    movie.director = new_person  # Zmieniamy reżysera filmu
+    new_person.movies_directed.append(movie)  # Dodajemy film do nowej osoby
+
+for movie in old_person.movies_acted:
+    movie.cast.remove(old_person)  # Usuwamy starą osobę z obsady
+    movie.cast.append(new_person)  # Dodajemy nową osobę do obsady
+    new_person.movies_acted.append(movie)  # Dodajemy film do nowej osoby
+    
+# Usuwamy starą osobę
+del root.persons[old_name]
+
+# Zatwierdzamy wszystko w ramach jednej transakcji
+transaction.commit()</code></pre>
+                </div>
+                
+                <div class="zodb-feature zodb-feature-highlight mt-3 p-3">
+                    <h5>Zalety transakcji ZODB przy aktualizacji relacji:</h5>
+                    <ul>
+                        <li>Wszystkie zmiany relacji są atomowe - albo wszystkie się powiodą, albo wszystkie zostaną anulowane</li>
+                        <li>Nie ma potrzeby pisania złożonych zapytań SQL do aktualizacji wielu tabel</li>
+                        <li>Obiekty są wzajemnie dostępne przez bezpośrednie referencje</li>
+                        <li>W przypadku błędu, możemy użyć transaction.abort() aby cofnąć zmiany</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

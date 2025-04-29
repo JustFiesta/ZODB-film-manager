@@ -9,10 +9,10 @@ sudo apt-get update
 sudo apt install -y python3.10-venv
 
 # Create virtual environment
-python3.10 -m venv movie_manager/.venv
+python3.10 -m venv .venv
 
 # Activate virtual environment
-source movie_manager/.venv/bin/activate
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
