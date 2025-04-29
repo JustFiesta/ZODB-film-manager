@@ -32,44 +32,59 @@ ZODB is an object-oriented database that allows Python objects to be stored dire
 ### Installation
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/JustFiesta/ZODB-film-manager
-   cd project
-2. Create and activate a virtual environment:
 
-On Linux:
-  ```bash
+    ```bash
+    git clone https://github.com/JustFiesta/ZODB-film-manager
+    cd project
+    ```
+
+2. Create and activate a virtual environment
+
+    On Linux:
+
+    ```bash
     python3 -m venv venv
     source venv/bin/activate
-  ```
-On Windows:
-  ```bash
+    ```
+
+    On Windows:
+
+    ```bash
     python -m venv venv
     venv\Scripts\activate
-  ```
+    ```
+
 3. Install dependencies
-  ```bash
-   pip install -r requirements.txt
-  ```
-5. Initialize the database
-  ```bash
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4. Initialize the database
+
+    ```bash
     python -m app.database
-  ```
+    ```
+
 ## Running the application
 
 On Linux:
-  ```bash
-    export FLASK_APP=web
-    export FLASK_ENV=development
-    flask run
-  ```
+
+```bash
+export FLASK_APP=web
+export FLASK_ENV=development
+flask run
+```
+
 On Windows:
-  ```bash
-    set FLASK_APP=web
-    set FLASK_ENV=development
-    flask run
-  ```  
-The application will be available at http://127.0.0.1:5000.
+
+```bash
+set FLASK_APP=web
+set FLASK_ENV=development
+flask run
+```  
+
+The application will be available at [http://127.0.0.1:5000].
 
 ## Usage
 
@@ -83,7 +98,7 @@ The application will be available at http://127.0.0.1:5000.
 
 1. Simplified Data Managament
 No need to write SQL queries or manage complex ORM mappings.
-   
+
 2. Natural Object Relationships
 Objects like movies, directors, and genres maintain direct references to each other.
 
@@ -92,11 +107,11 @@ Efficient indexing with OOBTree ensures fast lookups even with large datasets
   
 4. Flexibility
 Schema-less design allows for easy modifications and additions to the data model.
-   
+
 5. Consistency
 ACID transactions ensure that all changes are applied atomically.
 
 ## Troubleshooting
+
 - If the application fails to start, ensure that the database file (movies.fs) is initialized and accessible.
 - For issues with dependencies, verify that all packages in requirements.txt are installed.
- 
