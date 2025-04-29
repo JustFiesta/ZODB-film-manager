@@ -1,15 +1,20 @@
-from flask import Flask
+"""
+Inicjalizacja aplikacji Flask.
+"""
 import os
+from flask import Flask
 
 def create_app():
+    """
+    Utworzenie instancji aplikacji Flask.
+    """
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-for-development-only')
-    
-    # Ensure the database directory exists
+
     os.makedirs('db', exist_ok=True)
-    
-    # Register routes
+
+    # Inicjalizacja ścieżek
     from .routes import init_app
     init_app(app)
-    
+
     return app

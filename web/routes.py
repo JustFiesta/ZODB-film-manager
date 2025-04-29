@@ -1,10 +1,11 @@
+"""
+Ten moduł definiuje trasy dla aplikacji webowej Flask zarządzającej bazą danych filmów 
+przy użyciu ZODB (Zope Object Database). Zapewnia funkcjonalności zarządzania filmami, 
+gatunkami i osobami (reżyserami i aktorami), a także wyszukiwania i filtrowania.
+"""
+import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from app.crud import MovieManager
-import os
-import datetime
-import pprint
-import json
-from flask import jsonify
 
 main = Blueprint('main', __name__)
 manager = MovieManager(db_path="db/movies.fs")
@@ -310,8 +311,8 @@ def movies_by_year(year):
 def movies_by_director(director_name):
     """Wyświetla filmy danego reżysera."""
     movies = manager.get_movies_by_director(director_name)
-    return render_template('movies_list.html', 
-                         movies=movies, 
+    return render_template('movies_list.html',
+                         movies=movies,
                          title=f'Filmy reżysera: {director_name}')
 
 # ------ Zarządzanie gatunkami ------
@@ -435,6 +436,7 @@ def delete_genre(name):
 
 @main.route('/persons')
 def list_persons():
+    """Lista wszystkich osób (reżyserów i aktorów)."""
     persons = manager.get_all_persons()
     return render_template('person_list.html', persons=persons)
 
@@ -469,6 +471,7 @@ def person_detail(name):
 
 @main.route('/person/<name>/delete', methods=['POST'])
 def delete_person(name):
+    """Usuwanie osoby."""
     print(f"Próba usunięcia osoby: {name}")  # Debug log
     try:
         if manager.delete_person(name):
@@ -563,11 +566,11 @@ def page_not_found(e):
 def init_app(app):
     """Inicjalizuje aplikację Flask routingiem."""
     app.register_blueprint(main)
-    
+
     @app.errorhandler(404)
     def page_not_found(e):
         return render_template('404.html'), 404
-        
+
     return app
 
 # ------ Debug ------

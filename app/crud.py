@@ -1,6 +1,6 @@
+import datetime
 from .database import DatabaseManager
 from .models import Movie, Person, Genre
-import datetime
 from BTrees.OOBTree import OOBTree
 
 class MovieManager:
@@ -10,14 +10,14 @@ class MovieManager:
     Zapewnia metody do tworzenia, odczytu, aktualizacji i usuwania filmów,
     a także do zarządzania powiązanymi osobami (reżyserzy, aktorzy) i gatunkami.
     """
-    
+
     _instance = None
-    
+
     def __new__(cls, db_path="db/movies.fs"):
         if cls._instance is None:
             cls._instance = super(MovieManager, cls).__new__(cls)
         return cls._instance
-    
+
     def __init__(self, db_path="db/movies.fs"):
         """Inicjalizuje menedżera filmu z połączeniem do bazy danych."""
         if not hasattr(self, 'db'):
@@ -28,56 +28,55 @@ class MovieManager:
 
 
     # ----- Operacje na filmach -----
-    
     def add_movie(self, title, director_name, year, actors=None, genres=None, rating=None, comment="", date_watched=None):
         print(f"Dodawanie filmu: {title}")  # Debug
-        
+
         if title in self.root.movies:
             print(f"Film {title} już istnieje")  # Debug
             return False
-            
+
         # Znajdź lub utwórz reżysera
         director = self.get_or_create_person(director_name)
-        
+
         # Utwórz film i dodaj do root
         movie = Movie(title, director, year)
         self.root.movies[title] = movie
-        
+
         # Dodaj film do listy reżysera
         if movie not in director.movies_directed:
             director.movies_directed.append(movie)
-        
+
         # Ustaw opcjonalne pola
         if rating is not None:
             movie.rating = rating
         movie.comment = comment
         movie.date_watched = date_watched
-        
+
         # Dodaj aktorów
         if actors:
             for actor_name in actors:
                 actor = self.get_or_create_person(actor_name)
                 movie.add_actor(actor)
-        
+
         # Dodaj gatunki
         if genres:
             for genre_name in genres:
                 self.add_genre_to_movie(title, genre_name)
-        
+
         # Aktualizuj indeksy
         self.db.update_indexes(movie)
-        
+
         print(f"Stan bazy przed commitem: {list(self.root.movies.keys())}")  # Debug
         self.db.commit()
         print(f"Stan bazy po commicie: {list(self.root.movies.keys())}")  # Debug
-        
+
         # Odczytaj film z bazy aby sprawdzić czy został zapisany
         test_movie = self.get_movie(title)
         if test_movie:
             print(f"Film {title} poprawnie dodany do bazy")
         else:
             print(f"BŁĄD: Film {title} nie został zapisany w bazie")
-        
+
         return movie
 
     def get_movie(self, title):
@@ -86,7 +85,7 @@ class MovieManager:
         print(f"Dostępne filmy: {list(self.root.movies.keys())}")  # Debug
         return self.root.movies.get(title)
 
-    def update_movie(self, title, new_director=None, new_year=None, 
+    def update_movie(self, title, new_director=None, new_year=None,
                     new_rating=None, new_comment=None, new_date_watched=None):
         """
         Aktualizuje dane istniejącego filmu.
@@ -112,13 +111,13 @@ class MovieManager:
         # Aktualizacja roku
         if new_year is not None and movie.year != new_year:
             movie.year = new_year
-            
+
         # Aktualizacja reżysera
         if new_director is not None and movie.director.name != new_director:
             # Usuń z listy starego reżysera
             if movie in movie.director.movies_directed:
                 movie.director.movies_directed.remove(movie)
-                
+
             # Znajdź lub utwórz nowego reżysera
             director = self.get_or_create_person(new_director)
             movie.director = director
@@ -127,16 +126,16 @@ class MovieManager:
         # Aktualizacja pozostałych pól
         if new_rating is not None and 1 <= new_rating <= 10:
             movie.rating = new_rating
-            
+
         if new_comment is not None:
             movie.comment = new_comment
-            
+
         if new_date_watched is not None:
             movie.date_watched = new_date_watched
 
         # Aktualizuj indeksy po zmianach
         self.db.update_indexes(movie)
-        
+
         # Zatwierdź zmiany
         self.db.commit()
         return True
@@ -153,19 +152,19 @@ class MovieManager:
         """
         if title not in self.root.movies:
             return False
-        
+
         print(f"Rozpoczynam usuwanie filmu: {title}")
         movie = self.root.movies[title]
-        
+
         # Usuń z indeksów
         print("Usuwanie z indeksów...")
         self.db.remove_from_indexes(movie)
-        
+
         # Usuń z list reżysera
         print(f"Usuwanie z filmów reżysera: {movie.director.name}")
         if hasattr(movie.director, 'movies_directed') and movie in movie.director.movies_directed:
             movie.director.movies_directed.remove(movie)
-        
+
         # Usuń z list aktorów
         print(f"Usuwanie z filmów aktorów...")
         if hasattr(movie, 'cast'):
@@ -174,7 +173,7 @@ class MovieManager:
                     actor.movies_acted.remove(movie)
                 if actor in movie.cast:
                     movie.cast.remove(actor)
-                
+
         # Usuń z list gatunków
         print(f"Usuwanie z gatunków...")
         if hasattr(movie, 'genres'):
@@ -183,21 +182,21 @@ class MovieManager:
                     genre.movies.remove(movie)
                 if genre in movie.genres:
                     movie.genres.remove(genre)
-        
+
         # Usuń film
         del self.root.movies[title]
-        
+
         # Zatwierdź zmiany
         self.db.commit()
         print(f"Film {title} został usunięty")
-        
+
         # Pakowanie bazy danych, aby usunąć stare wersje obiektów
         try:
             self.db.pack()
             print("Baza danych została spakowana")
         except:
             print("Pakowanie bazy danych nie powiodło się, ale film został usunięty")
-        
+
         return True
 
     def list_movies(self, limit=None, sort_by=None, watched_only=False, with_rating_only=False):
@@ -205,14 +204,14 @@ class MovieManager:
         Zwraca listę filmów z opcjonalnym filtrowaniem i sortowaniem.
         """
         movies_list = list(self.root.movies.values())
-        
+
         # Filtrowanie
         if watched_only:
             movies_list = [m for m in movies_list if m.date_watched is not None]
-            
+
         if with_rating_only:
             movies_list = [m for m in movies_list if m.rating is not None]
-        
+
         # Sortowanie
         if sort_by == "title":
             movies_list.sort(key=lambda m: m.title)
@@ -228,11 +227,11 @@ class MovieManager:
             def get_date_watched(m):
                 return m.date_watched if m.date_watched is not None else datetime.datetime(1900, 1, 1)
             movies_list.sort(key=get_date_watched, reverse=True)
-            
+
         # Limit
         if limit:
             return movies_list[:limit]
-            
+
         return movies_list
 
     def search_movies(self, query):
@@ -241,13 +240,13 @@ class MovieManager:
         """
         results = []
         query_lower = query.lower()
-        
+
         for movie in self.root.movies.values():
             # Wyszukiwanie po tytule
             if query_lower in movie.title.lower():
                 results.append(movie)
                 continue
-                
+
             # Wyszukiwanie po reżyserze
             if isinstance(movie.director, str):
                 if query_lower in movie.director.lower():
@@ -256,7 +255,7 @@ class MovieManager:
                 if query_lower in movie.director.name.lower():
                     results.append(movie)
                 continue
-                
+
             # Wyszukiwanie po aktorach
             if hasattr(movie, 'cast'):
                 for actor in movie.cast:
@@ -268,7 +267,7 @@ class MovieManager:
                         if query_lower in actor.name.lower():
                             results.append(movie)
                             break
-                    
+
             # Wyszukiwanie po gatunkach
             if hasattr(movie, 'genres'):
                 for genre in movie.genres:
@@ -280,21 +279,21 @@ class MovieManager:
                         if query_lower in genre.name.lower():
                             results.append(movie)
                             break
-                    
+
         return list(set(results))  # Usuwa duplikaty
-        
+
     def get_movies_by_year(self, year):
         """Zwraca wszystkie filmy z danego roku."""
         if year not in self.root.movies_by_year:
             return []
         return list(self.root.movies_by_year[year].values())
-        
+
     def get_movies_by_director(self, director_name):
         """Zwraca wszystkie filmy danego reżysera."""
         if director_name not in self.root.movies_by_director:
             return []
         return list(self.root.movies_by_director[director_name].values())
-        
+
     def get_movies_by_genre(self, genre_name):
         """Zwraca wszystkie filmy w danym gatunku."""
         if genre_name not in self.root.movies_by_genre:
@@ -302,7 +301,6 @@ class MovieManager:
         return list(self.root.movies_by_genre[genre_name].values())
 
     # ----- Operacje na osobach -----
-    
     def get_or_create_person(self, name):
         """
         Zwraca osobę o podanym imieniu i nazwisku lub tworzy nową.
@@ -314,7 +312,7 @@ class MovieManager:
             self.root.persons[name] = person
             self.db.commit()
             return person
-            
+
     def add_actor_to_movie(self, movie_title, actor_name):
         """
         Dodaje aktora do obsady filmu.
@@ -329,49 +327,48 @@ class MovieManager:
         movie = self.get_movie(movie_title)
         if not movie:
             return False
-            
+
         actor = self.get_or_create_person(actor_name)
         movie.add_actor(actor)
         self.db.commit()
         return True
-        
+
     def get_all_persons(self):
         """Zwraca wszystkie osoby (aktorów i reżyserów)."""
         return list(self.root.persons.values())
-        
+
     def get_directors(self):
         """Zwraca osoby, które są reżyserami."""
         return [p for p in self.root.persons.values() if p.movies_directed]
-        
+
     def get_actors(self):
         """Zwraca osoby, które są aktorami."""
         return [p for p in self.root.persons.values() if p.movies_acted]
-        
+
     def delete_person(self, name):
         """Usuwa osobę z bazy danych."""
         print(f"MovieManager: Próba usunięcia osoby {name}")  # Debug log
         print(f"Dostępne osoby: {list(self.root.persons.keys())}")  # Debug log
-        
+
         if name not in self.root.persons:
             print(f"Osoba {name} nie istnieje w bazie")  # Debug log
             return False
-            
+
         person = self.root.persons[name]
-        
+
         # Sprawdź powiązania
         if person.movies_directed or person.movies_acted:
             print(f"Osoba {name} ma powiązane filmy")  # Debug log
             return False
-        
+
         # Usuń osobę
         del self.root.persons[name]
         self.db.commit()
-        
+
         print(f"Osoba {name} została usunięta")  # Debug log
         return True
 
     # ----- Operacje na gatunkach -----
-    
     def add_genre(self, name):
         """
         Dodaje nowy gatunek.
@@ -384,17 +381,17 @@ class MovieManager:
         """
         if name in self.root.genres:
             return self.root.genres[name]
-            
+
         genre = Genre(name)
         self.root.genres[name] = genre
-        
+
         # Utwórz indeks dla tego gatunku
         if name not in self.root.movies_by_genre:
             self.root.movies_by_genre[name] = OOBTree()
-            
+
         self.db.commit()
         return genre
-        
+
     def add_genre_to_movie(self, movie_title, genre_name):
         """
         Dodaje gatunek do filmu.
@@ -409,58 +406,21 @@ class MovieManager:
         movie = self.get_movie(movie_title)
         if not movie:
             return False
-            
+
         # Znajdź lub utwórz gatunek
         genre = self.add_genre(genre_name)
-        
+
         # Aktualizuj relację
         movie.add_genre(genre)
-        
+
         # Aktualizuj indeks
         if genre_name not in self.root.movies_by_genre:
             self.root.movies_by_genre[genre_name] = OOBTree()
         self.root.movies_by_genre[genre_name][movie_title] = movie
-        
+
         self.db.commit()
         return True
-        
+
     def get_all_genres(self):
         """Zwraca wszystkie gatunki."""
         return list(self.root.genres.values())
-        
-    # ----- Operacje na bazie danych -----
-    
-
-def close(self):
-    """Zamyka połączenie z bazą danych."""
-    print("MovieManager: Zamykanie połączenia z bazą danych")
-    try:
-        if hasattr(self, 'db'):
-            # Upewnij się, że wszystkie zmiany są zatwierdzone
-            print("MovieManager: Zatwierdzanie ostatnich zmian")
-            self.db.commit()
-            # Zamknij połączenie z bazą danych
-            print("MovieManager: Zamykanie bazy danych")
-            self.db.close()
-            print("MovieManager: Baza danych zamknięta prawidłowo")
-        else:
-            print("MovieManager: Brak obiektu bazy danych do zamknięcia")
-    except Exception as e:
-        print(f"MovieManager: Błąd podczas zamykania bazy danych: {e}")
-
-    def pack_database(self):
-        """Pakuje bazę danych aby zaoszczędzić miejsce."""
-        self.db.pack()
-        return True
-
-    def update_indexes(self, movie):
-        """Aktualizuje wszystkie indeksy dla filmu."""
-        # ...existing code...
-        
-        # Aktualizuj indeks reżyserów
-        director_name = movie.director.name
-        if director_name not in self.root.movies_by_director:
-            self.root.movies_by_director[director_name] = OOBTree()
-        self.root.movies_by_director[director_name][movie.title] = movie
-        
-        # ...existing code...
