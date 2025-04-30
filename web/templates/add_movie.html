@@ -24,31 +24,53 @@
                     
                     <!-- Reżyser - wybór istniejącego lub dodanie nowego -->
                     <div class="mb-3">
-                        <label for="director" class="form-label">Reżyser</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="director" name="director" list="director-list" required>
-                            <datalist id="director-list">
+                        <label for="director-select" class="form-label">Wybierz reżysera</label>
+                        <div class="input-group mb-2">
+                            <select class="form-select" id="director-select">
+                                <option selected disabled>Wybierz reżysera...</option>
                                 {% for director in all_directors %}
-                                    <option value="{{ director.name }}">
+                                    <option value="{{ director.name }}">{{ director.name }}</option>
                                 {% endfor %}
-                            </datalist>
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary" onclick="selectDirector()">
+                                Wybierz
+                            </button>
                         </div>
-                        <div class="form-text">Wpisz imię i nazwisko reżysera. Możesz wybrać z listy istniejących lub dodać nowego.</div>
+                        
+                        <label for="director" class="form-label">Reżyser</label>
+                        <input type="text" class="form-control" id="director" name="director" required>
+                        <div class="form-text">Wpisz imię i nazwisko reżysera. Możesz wybrać z listy powyżej lub wpisać nowego.</div>
                     </div>
                     
-                    <!-- Aktorzy - dodanie wielu oddzielonych przecinkami -->
+                    <!-- Aktorzy - wybór z listy rozwijanej oraz możliwość dodania nowych -->
                     <div class="mb-3">
-                        <label for="actors" class="form-label">Aktorzy</label>
-                        <textarea class="form-control" id="actors" name="actors" rows="2"></textarea>
-                        <div class="form-text">Wpisz imiona i nazwiska aktorów oddzielone przecinkami. Np. "Tom Hanks, Leonardo DiCaprio"</div>
-                        <div class="mt-2">
-                            <span class="fw-bold">Istniejący aktorzy:</span>
-                            <div class="d-flex flex-wrap gap-2 mt-1">
+                        <label for="actor-select" class="form-label">Wybierz aktorów</label>
+                        <div class="input-group mb-2">
+                            <select class="form-select" id="actor-select">
+                                <option selected disabled>Wybierz aktora...</option>
                                 {% for actor in all_actors %}
-                                    <span class="badge bg-secondary actor-badge" 
-                                          onclick="addActor('{{ actor.name }}')">{{ actor.name }}</span>
+                                    <option value="{{ actor.name }}">{{ actor.name }}</option>
                                 {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary" onclick="addSelectedActor()">
+                                Dodaj
+                            </button>
+                        </div>
+                        
+                        <label for="actors" class="form-label">Aktorzy</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="new-actor" placeholder="Dodaj nowego aktora...">
+                            <button type="button" class="btn btn-outline-secondary" onclick="addNewActor()">
+                                Dodaj nowego
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Wybrani aktorzy:</label>
+                            <div id="selected-actors" class="d-flex flex-wrap gap-2 mb-2">
+                                <!-- Tu pojawią się wybrani aktorzy jako odznaki -->
                             </div>
+                            <textarea class="form-control d-none" id="actors" name="actors" rows="2"></textarea>
                         </div>
                     </div>
                     
@@ -129,16 +151,91 @@ transaction.abort()  # Anulowanie zmian</code></pre>
 
 {% block scripts %}
 <script>
-    function addActor(name) {
-        let actorsField = document.getElementById('actors');
-        let currentValue = actorsField.value;
+    // Tablica do przechowywania wybranych aktorów
+    let selectedActors = [];
+    
+    // Funkcja do dodawania aktora z listy rozwijanej
+    function addSelectedActor() {
+        const actorSelect = document.getElementById('actor-select');
+        const selectedActor = actorSelect.value;
         
-        if (currentValue && !currentValue.endsWith(',') && currentValue.length > 0) {
-            actorsField.value = currentValue + ', ' + name;
-        } else {
-            actorsField.value = currentValue + name;
+        if (selectedActor && !actorSelect.disabled && !selectedActors.includes(selectedActor)) {
+            selectedActors.push(selectedActor);
+            updateSelectedActorsDisplay();
+            actorSelect.selectedIndex = 0; // Reset wyboru
         }
     }
+    
+    // Funkcja do dodawania nowego aktora
+    function addNewActor() {
+        const newActorInput = document.getElementById('new-actor');
+        const newActor = newActorInput.value.trim();
+        
+        if (newActor && !selectedActors.includes(newActor)) {
+            selectedActors.push(newActor);
+            updateSelectedActorsDisplay();
+            newActorInput.value = ''; // Wyczyść pole
+        }
+    }
+    
+    // Funkcja do usuwania aktora z listy wybranych
+    function removeActor(actor) {
+        const index = selectedActors.indexOf(actor);
+        if (index > -1) {
+            selectedActors.splice(index, 1);
+            updateSelectedActorsDisplay();
+        }
+    }
+    
+    // Funkcja do aktualizacji wyświetlania wybranych aktorów
+    function updateSelectedActorsDisplay() {
+        const selectedActorsDiv = document.getElementById('selected-actors');
+        const actorsField = document.getElementById('actors');
+        
+        // Aktualizuj pole formularza (ukryte)
+        actorsField.value = selectedActors.join(', ');
+        
+        // Wyczyść i zaktualizuj wyświetlane odznaki
+        selectedActorsDiv.innerHTML = '';
+        
+        selectedActors.forEach(actor => {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary';
+            badge.style.cursor = 'pointer';
+            badge.innerHTML = `${actor} <i class="fas fa-times"></i>`;
+            badge.onclick = function() { removeActor(actor); };
+            selectedActorsDiv.appendChild(badge);
+        });
+    }
+    
+    // Dawna funkcja dla wstecznej kompatybilności
+    function addActor(name) {
+        if (!selectedActors.includes(name)) {
+            selectedActors.push(name);
+            updateSelectedActorsDisplay();
+        }
+    }
+    
+    // Funkcja do wyboru reżysera z listy rozwijanej
+    function selectDirector() {
+        const directorSelect = document.getElementById('director-select');
+        const directorInput = document.getElementById('director');
+        
+        if (directorSelect.value && !directorSelect.disabled) {
+            directorInput.value = directorSelect.value;
+            directorSelect.selectedIndex = 0; // Reset wyboru
+        }
+    }
+    
+    // Inicjalizacja po załadowaniu strony
+    document.addEventListener('DOMContentLoaded', function() {
+        // Jeśli są już jakieś wartości w polu actors, załaduj je
+        const actorsField = document.getElementById('actors');
+        if (actorsField.value) {
+            selectedActors = actorsField.value.split(',').map(a => a.trim());
+            updateSelectedActorsDisplay();
+        }
+    });
 </script>
 {% endblock %}
 
