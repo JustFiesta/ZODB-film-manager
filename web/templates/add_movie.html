@@ -74,22 +74,35 @@
                         </div>
                     </div>
                     
-                    <!-- Gatunki - wybór wielu z listy plus możliwość dodania nowych -->
+                    <!-- Gatunki - wybór z listy rozwijanej oraz możliwość dodania nowych -->
                     <div class="mb-3">
-                        <label class="form-label">Gatunki</label>
-                        <div class="row mb-2">
-                            <div class="col">
-                                <select multiple class="form-select" id="genres" name="genres" size="5">
-                                    {% for genre in all_genres %}
-                                        <option value="{{ genre.name }}">{{ genre.name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-text">Przytrzymaj Ctrl, aby wybrać wiele gatunków.</div>
-                            </div>
+                        <label for="genre-select" class="form-label">Wybierz gatunki</label>
+                        <div class="input-group mb-2">
+                            <select class="form-select" id="genre-select">
+                                <option selected disabled>Wybierz gatunek...</option>
+                                {% for genre in all_genres %}
+                                    <option value="{{ genre.name }}">{{ genre.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary" onclick="addSelectedGenre()">
+                                Dodaj
+                            </button>
                         </div>
-                        <label for="new_genres" class="form-label">Dodaj nowe gatunki</label>
-                        <input type="text" class="form-control" id="new_genres" name="new_genres">
-                        <div class="form-text">Wpisz nowe gatunki oddzielone przecinkami. Np. "Thriller, Western"</div>
+                        
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="new-genre" placeholder="Dodaj nowy gatunek...">
+                            <button type="button" class="btn btn-outline-secondary" onclick="addNewGenre()">
+                                Dodaj nowy
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Wybrane gatunki:</label>
+                            <div id="selected-genres" class="d-flex flex-wrap gap-2 mb-2">
+                                <!-- Tu pojawią się wybrane gatunki jako odznaki -->
+                            </div>
+                            <input type="hidden" id="genres" name="genres" value="">
+                        </div>
                     </div>
                     
                     <!-- Ocena i komentarz -->
