@@ -60,12 +60,6 @@ ZODB is an object-oriented database that allows Python objects to be stored dire
     pip install -r requirements.txt
     ```
 
-4. Initialize the database
-
-    ```bash
-    python -m app.database
-    ```
-
 ## Running the application
 
 On Linux:

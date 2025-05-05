@@ -1,39 +1,25 @@
-# Build stage
-FROM python:3.12-slim AS builder
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y
-
-COPY requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt --target=/app/dependencies
-
-COPY . .
-
-# Final stage
 FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Copy application files
+COPY requirements.txt . 
+COPY app/ ./app/ 
+COPY web/ ./web/ 
+COPY run.py .
 
-COPY --from=builder /app/dependencies /app/dependencies
-COPY --from=builder /app/app ./app
-COPY --from=builder /app/web ./web
-COPY --from=builder /app/run.py .
+# Install dependencies 
+RUN pip install --no-cache-dir -r requirements.txt
 
-ENV PYTHONPATH=/app/dependencies
-ENV FLASK_APP=web
-ENV FLASK_ENV=production
+# Set environment variables 
+ENV FLASK_APP=web 
+ENV FLASK_ENV=production 
+ENV FLASK_RUN_HOST=0.0.0.0 
+ENV PYTHONUNBUFFERED=1 
+ENV LOG_LEVEL=DEBUG
 
-VOLUME ["/app/db"]
-RUN mkdir -p /app/db && \
-    chown -R appuser:appuser /app && \
-    chmod 777 /app/db
-
-USER appuser
-
+# Expose port 
 EXPOSE 5000
 
+# Run the application 
 CMD ["python", "run.py"]
