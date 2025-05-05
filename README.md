@@ -35,17 +35,26 @@ To run the application using Docker, follow these steps:
 
 1. **Build the Docker image**  
    In the project directory, run the following command to build the Docker image:
+
    ```bash
-   docker build -t zodb-film-manager .
+   docker build -t film-manager .
    ```
 
-2. **Run the Docker container**  
+2. **Create persistent volume for database**
+   This will allow container to persist data even on removal/restart:
+   
+   ```bash
+   docker volume create film-db
+   ```
+
+3. **Run the Docker container**  
    After building the image, start the container with:
+
    ```bash
-   docker run -p 5000:5000 zodb-film-manager
+   docker run -p 5000:5000 -v film-db:/app/db --name film-manager film-manager 
    ```
 
-3. **Access the application**  
+4. **Access the application**  
    Open your web browser and navigate to [http://localhost:5000](http://localhost:5000) to use the application.
 
 ### Manual Installation (Linux and Windows)
