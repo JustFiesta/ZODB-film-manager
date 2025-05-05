@@ -88,12 +88,6 @@ To run the application using Docker, follow these steps:
     pip install -r requirements.txt
     ```
 
-4. Initialize the database
-
-    ```bash
-    python -m app.database
-    ```
-
 ## Running the application
 
 On Linux:
