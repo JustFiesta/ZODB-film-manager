@@ -64,6 +64,15 @@ signal.signal(signal.SIGINT, handle_sigterm)
 if __name__ == "__main__":
     app = create_app()
 
+    import os
+    from app.crud import MovieManager
+    if os.environ.get('SEED_ON_STARTUP', 'true').lower() == 'true':
+        print("Automatyczne seedowanie bazy danych jest włączone.")
+        manager = MovieManager()
+        manager.seed_database()
+    else:
+        print("Automatyczne seedowanie bazy danych jest wyłączone.")
+
     # Run web app
     try:
         app.run(debug=False, host='0.0.0.0', port=5000)
