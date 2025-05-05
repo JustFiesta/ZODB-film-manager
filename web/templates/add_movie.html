@@ -101,7 +101,7 @@
                             <div id="selected-genres" class="d-flex flex-wrap gap-2 mb-2">
                                 <!-- Tu pojawią się wybrane gatunki jako odznaki -->
                             </div>
-                            <input type="hidden" id="genres" name="genres" value="">
+                            <input type="hidden" id="genres-input" name="genres" value="">
                         </div>
                     </div>
                     
@@ -247,6 +247,78 @@ transaction.abort()  # Anulowanie zmian</code></pre>
         if (actorsField.value) {
             selectedActors = actorsField.value.split(',').map(a => a.trim());
             updateSelectedActorsDisplay();
+        }
+    });
+
+        // Tablica do przechowywania wybranych gatunków
+    let selectedGenres = [];
+
+    // Funkcja do dodawania gatunku z listy rozwijanej
+    function addSelectedGenre() {
+        const genreSelect = document.getElementById('genre-select');
+        const selectedGenre = genreSelect.value;
+        
+        if (selectedGenre && !genreSelect.disabled && !selectedGenres.includes(selectedGenre)) {
+            selectedGenres.push(selectedGenre);
+            updateSelectedGenresDisplay();
+            genreSelect.selectedIndex = 0; // Reset wyboru
+        }
+    }
+
+    // Funkcja do dodawania nowego gatunku
+    function addNewGenre() {
+        const newGenreInput = document.getElementById('new-genre');
+        const newGenre = newGenreInput.value.trim();
+        
+        if (newGenre && !selectedGenres.includes(newGenre)) {
+            selectedGenres.push(newGenre);
+            updateSelectedGenresDisplay();
+            newGenreInput.value = ''; // Wyczyść pole
+        }
+    }
+
+    // Funkcja do usuwania gatunku z listy wybranych
+    function removeGenre(genre) {
+        const index = selectedGenres.indexOf(genre);
+        if (index > -1) {
+            selectedGenres.splice(index, 1);
+            updateSelectedGenresDisplay();
+        }
+    }
+
+    // Funkcja do aktualizacji wyświetlania wybranych gatunków
+    function updateSelectedGenresDisplay() {
+        const selectedGenresDiv = document.getElementById('selected-genres');
+        const genresInput = document.getElementById('genres-input');
+        
+        // Aktualizuj ukryte pole formularza
+        genresInput.value = JSON.stringify(selectedGenres);
+        
+        // Wyczyść i zaktualizuj wyświetlane odznaki
+        selectedGenresDiv.innerHTML = '';
+        
+        selectedGenres.forEach(genre => {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary';
+            badge.style.cursor = 'pointer';
+            badge.innerHTML = `${genre} <i class="bi bi-x"></i>`;
+            badge.onclick = function() { removeGenre(genre); };
+            selectedGenresDiv.appendChild(badge);
+        });
+    }
+
+    // Inicjalizacja po załadowaniu strony
+    document.addEventListener('DOMContentLoaded', function() {
+        // Jeśli są już jakieś wartości w ukrytym polu, załaduj je
+        const genresInput = document.getElementById('genres-input');
+        if (genresInput.value) {
+            try {
+                selectedGenres = JSON.parse(genresInput.value);
+            } catch (e) {
+                // W przypadku błędu parsowania, spróbuj traktować jako listę oddzieloną przecinkami
+                selectedGenres = genresInput.value.split(',').map(g => g.trim()).filter(g => g);
+            }
+            updateSelectedGenresDisplay();
         }
     });
 </script>
