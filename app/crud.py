@@ -26,6 +26,169 @@ class MovieManager:
             self.root = self.db.get_root()
             print(f"MovieManager: Inicjalizacja zakończona, dostępne filmy: {list(self.root.movies.keys())}")
 
+    # ----- Seedowanie bazy -----
+    def seed_database(self):
+        """
+        Wypełnia bazę danych przykładowymi danymi, jeśli jest pusta.
+        
+        Dodaje przykładowe filmy, reżyserów, aktorów i gatunki, wraz z odpowiednimi relacjami.
+        """
+        # Sprawdź czy baza jest pusta
+        if len(self.root.movies) > 0:
+            print("Baza danych zawiera już dane, pomijam seedowanie.")
+            return False
+
+        print("Rozpoczynam seedowanie bazy danych przykładowymi filmami...")
+
+        gatunki = ['Akcja', 'Komedia', 'Dramat', 'Sci-Fi', 'Horror', 'Thriller',
+                   'Animacja', 'Przygodowy', 'Fantasy', 'Romans', 'Biograficzny']
+
+        for nazwa_gatunku in gatunki:
+            self.add_genre(nazwa_gatunku)
+        print(f"Dodano {len(gatunki)} gatunków.")
+
+        sample_movies = [
+            {
+                "title": "Incepcja",
+                "director": "Christopher Nolan",
+                "year": 2010,
+                "actors": ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Ellen Page", "Tom Hardy"],
+                "genres": ["Sci-Fi", "Akcja", "Thriller"],
+                "rating": 9,
+                "comment": "Fascynujący film o włamywaniu się do snów i manipulowaniu podświadomością.",
+                "date_watched": datetime.datetime(2020, 5, 12)
+            },
+            {
+                "title": "Pulp Fiction",
+                "director": "Quentin Tarantino",
+                "year": 1994,
+                "actors": ["John Travolta", "Samuel L. Jackson", "Uma Thurman", "Bruce Willis"],
+                "genres": ["Thriller", "Komedia", "Dramat"],
+                "rating": 10,
+                "comment": "Kultowy film z nielinearną narracją i świetnymi dialogami.",
+                "date_watched": datetime.datetime(2019, 11, 3)
+            },
+            {
+                "title": "Władca Pierścieni: Drużyna Pierścienia",
+                "director": "Peter Jackson",
+                "year": 2001,
+                "actors": ["Elijah Wood", "Ian McKellen", "Viggo Mortensen", "Sean Astin"],
+                "genres": ["Fantasy", "Przygodowy"],
+                "rating": 9,
+                "comment": "Epicka adaptacja powieści Tolkiena z zapierającymi dech w piersiach krajobrazami Nowej Zelandii.",
+                "date_watched": datetime.datetime(2018, 12, 25)
+            },
+            {
+                "title": "Ojciec chrzestny",
+                "director": "Francis Ford Coppola",
+                "year": 1972,
+                "actors": ["Marlon Brando", "Al Pacino", "James Caan", "Robert Duvall"],
+                "genres": ["Dramat", "Thriller"],
+                "rating": 10,
+                "comment": "Klasyczny film o włoskiej mafii w Ameryce, uznawany za jedno z największych dzieł kinematografii.",
+                "date_watched": datetime.datetime(2017, 8, 15)
+            },
+            {
+                "title": "Matrix",
+                "director": "Lana Wachowski",
+                "year": 1999,
+                "actors": ["Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss", "Hugo Weaving"],
+                "genres": ["Sci-Fi", "Akcja"],
+                "rating": 9,
+                "comment": "Rewolucyjny film z przełomowymi efektami specjalnymi i głęboką filozofią.",
+                "date_watched": datetime.datetime(2016, 6, 20)
+            },
+            {
+                "title": "Milczenie owiec",
+                "director": "Jonathan Demme",
+                "year": 1991,
+                "actors": ["Jodie Foster", "Anthony Hopkins", "Scott Glenn", "Ted Levine"],
+                "genres": ["Thriller", "Horror"],
+                "rating": 8,
+                "comment": "Trzymający w napięciu thriller psychologiczny z niezapomnianą rolą Anthony'ego Hopkinsa.",
+                "date_watched": datetime.datetime(2020, 10, 31)
+            },
+            {
+                "title": "Skazani na Shawshank",
+                "director": "Frank Darabont",
+                "year": 1994,
+                "actors": ["Tim Robbins", "Morgan Freeman", "Bob Gunton", "William Sadler"],
+                "genres": ["Dramat"],
+                "rating": 10,
+                "comment": "Poruszająca historia o nadziei, przyjaźni i odkupieniu w więzieniu Shawshank.",
+                "date_watched": datetime.datetime(2019, 4, 5)
+            },
+            {
+                "title": "Forrest Gump",
+                "director": "Robert Zemeckis",
+                "year": 1994,
+                "actors": ["Tom Hanks", "Robin Wright", "Gary Sinise", "Sally Field"],
+                "genres": ["Dramat", "Komedia", "Romans"],
+                "rating": 9,
+                "comment": "Wzruszająca opowieść o niezwykłym życiu człowieka o ograniczonych możliwościach intelektualnych.",
+                "date_watched": datetime.datetime(2018, 2, 14)
+            },
+            {
+                "title": "Wyspa tajemnic",
+                "director": "Martin Scorsese",
+                "year": 2010,
+                "actors": ["Leonardo DiCaprio", "Mark Ruffalo", "Ben Kingsley", "Michelle Williams"],
+                "genres": ["Thriller", "Dramat"],
+                "rating": 8,
+                "comment": "Intrygujący thriller psychologiczny z zaskakującym zakończeniem.",
+                "date_watched": datetime.datetime(2020, 8, 23)
+            },
+            {
+                "title": "Gran Torino",
+                "director": "Clint Eastwood",
+                "year": 2008,
+                "actors": ["Clint Eastwood", "Bee Vang", "Ahney Her", "Christopher Carley"],
+                "genres": ["Dramat"],
+                "rating": 8,
+                "comment": "Poruszający film o weteranie wojny koreańskiej, który przełamuje swoje uprzedzenia wobec sąsiadów z Azji.",
+                "date_watched": datetime.datetime(2019, 7, 10)
+            },
+            {
+                "title": "Mroczny Rycerz",
+                "director": "Christopher Nolan",
+                "year": 2008,
+                "actors": ["Christian Bale", "Heath Ledger", "Aaron Eckhart", "Michael Caine"],
+                "genres": ["Akcja", "Dramat", "Thriller"],
+                "rating": 10,
+                "comment": "Wyjątkowy film superbohaterski z genialną rolą Heatha Ledgera jako Jokera.",
+                "date_watched": datetime.datetime(2018, 9, 17)
+            },
+            {
+                "title": "Django",
+                "director": "Quentin Tarantino",
+                "year": 2012,
+                "actors": ["Jamie Foxx", "Christoph Waltz", "Leonardo DiCaprio", "Samuel L. Jackson"],
+                "genres": ["Dramat", "Western"],
+                "rating": 9,
+                "comment": "Stylowy western osadzony na amerykańskim Południu przed wojną secesyjną.",
+                "date_watched": datetime.datetime(2020, 3, 8)
+            }
+        ]
+        
+        # Dodaj filmy do bazy
+        for movie_data in sample_movies:
+            self.add_movie(
+                title=movie_data["title"],
+                director_name=movie_data["director"],
+                year=movie_data["year"],
+                actors=movie_data["actors"],
+                genres=movie_data["genres"],
+                rating=movie_data["rating"],
+                comment=movie_data["comment"],
+                date_watched=movie_data["date_watched"]
+            )
+        
+        print(f"Dodano {len(sample_movies)} filmów.")
+        print("Seedowanie bazy danych zakończone pomyślnie!")
+        
+        # Zatwierdź wszystkie zmiany
+        self.db.commit()
+        return True
 
     # ----- Operacje na filmach -----
     def add_movie(self, title, director_name, year, actors=None, genres=None, rating=None, comment="", date_watched=None):
