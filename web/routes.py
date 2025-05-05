@@ -62,11 +62,22 @@ def add_movie():
         actors = request.form.get('actors', '').split(',')
         actors = [a.strip() for a in actors if a.strip()]
         
-        genres = request.form.getlist('genres')
-        new_genres = request.form.get('new_genres', '').split(',')
-        new_genres = [g.strip() for g in new_genres if g.strip()]
-        genres.extend(new_genres)
-        
+        # Gatunki
+        genres_value = request.form.get('genres', '')
+        if genres_value.startswith('[') and genres_value.endswith(']'):
+            # Próba parsowania jako JSON
+            try:
+                import json
+                genres = json.loads(genres_value)
+            except:
+                genres = []
+        else:
+            # Obsługa starych formularzy (kompatybilność wsteczna)
+            genres = request.form.getlist('genres')
+            new_genres = request.form.get('new_genres', '').split(',')
+            new_genres = [g.strip() for g in new_genres if g.strip()]
+            genres.extend(new_genres)
+       
         rating = request.form.get('rating')
         if rating and rating.isdigit():
             rating = int(rating)
@@ -204,10 +215,20 @@ def edit_movie(title):
             manager.add_actor_to_movie(title, actor_name)
         
         # Aktualizacja gatunków
-        genres = request.form.getlist('genres')
-        new_genres = request.form.get('new_genres', '').split(',')
-        new_genres = [g.strip() for g in new_genres if g.strip()]
-        genres.extend(new_genres)
+        genres_value = request.form.get('genres', '')
+        if genres_value.startswith('[') and genres_value.endswith(']'):
+            # Próba parsowania jako JSON
+            try:
+                import json
+                genres = json.loads(genres_value)
+            except:
+                genres = []
+        else:
+            # Obsługa starych formularzy (kompatybilność wsteczna)
+            genres = request.form.getlist('genres')
+            new_genres = request.form.get('new_genres', '').split(',')
+            new_genres = [g.strip() for g in new_genres if g.strip()]
+            genres.extend(new_genres)
         
         # Usuwamy stare gatunki
         for genre in list(movie.genres):
